@@ -1,30 +1,35 @@
-<!-- Version: 1.1.0 | Last Modified: 2026-11-13 07:46 HKT -->
+<!-- Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT -->
 <!--
   File: index.html
-  Description: Main HTML entry point for VibeBracket Arena (by Hustle Software Labs Ltd.).
+  Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
   Change Log:
     - v1.0.0 (2026-11-13 07:26 HKT): Initial prototype single-file release.
-    - v1.1.0 (2026-11-13 07:46 HKT): Modularized into index.html + css/styles.css + js/*.js; added visual Bracket Tree, Web Audio SFX, GenAI Topic Studio, and Photo-Baked Viral Poster Studio.
+    - v1.1.0 (2026-11-13 07:46 HKT): Modularized into index.html + css/styles.css + js/*.js; added Bracket Tree, Web Audio SFX, GenAI Topic Studio, and Photo-Baked Viral Poster Studio.
+    - v1.2.0 (2026-11-13 08:15 HKT): Added procedural SVG/photo visual contender banners, particle confetti FX overlay, zero-key instant AI topic synthesis, and custom winner quote input on posters.
+    - v2.0.0 (2026-11-13 17:55 HKT): Track A build with custom contender photos, Versus Clash transitions, Pan/Zoom Bracket Tree, Spice Meter, and 9:16 & 1:1 viral posters.
+    - v2.1.0 (2026-11-13 19:29 HKT): Fixed nested <button> markup (contender-card-wrap), added drag-and-drop contender photo support, 4/8/16/32-seed builder options, mobile pinch-to-zoom & touch pan, and compiled standalone HTML bundle.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VibeBracket Arena — Interactive Brackets, Tier Lists &amp; AI Posters by Hustle</title>
+  <title>VibeBracket Arena — Interactive Brackets, Tier Lists &amp; AI Posters by NetHustle</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
+  <canvas id="fxCanvas"></canvas>
+
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by Hustle · v1.1.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.1.0</span>
         </div>
       </div>
 
@@ -57,7 +62,7 @@
 
       <div class="card glass-card">
         <div class="arena-meta">
-          <span class="round-badge" id="roundBadge">Round of 8</span>
+          <span class="round-badge" id="roundBadge">Quarterfinals</span>
           <div class="progress-wrap">
             <div class="progress-label">
               <span id="matchCounter">Match 1 of 7</span>
@@ -74,29 +79,54 @@
 
         <div id="matchupStage">
           <div class="matchup-grid">
-            <button type="button" class="contender-btn" id="btnPickLeft">
-              <div class="contender-art" id="leftArt">
-                <span class="contender-emoji" id="leftEmoji"></span>
+            <div class="contender-card-wrap" id="leftCardWrap">
+              <button type="button" class="contender-btn" id="btnPickLeft">
+                <div id="leftArt" style="width:100%;"><img class="contender-banner-img" id="leftBannerImg" alt="Left contender visual banner" /><span id="leftEmoji" style="display:none;"></span></div>
+                <span class="contender-name" id="leftName"></span>
+                <span class="contender-tag" id="leftTag"></span>
+                <span class="contender-cta">Tap to Advance →</span>
+              </button>
+              <div class="contender-card-actions">
+                <button type="button" class="contender-photo-btn" id="btnLeftPhoto" title="Upload or drag-and-drop custom contender photo">📷 Custom Photo (or Drop Image)</button>
+                <input type="file" id="leftPhotoInput" accept="image/*" hidden />
               </div>
-              <span class="contender-name" id="leftName"></span>
-              <span class="contender-tag" id="leftTag"></span>
-              <span class="contender-cta">Tap to Advance →</span>
-            </button>
+            </div>
 
             <div class="vs-badge">
               <span class="vs-bolt">⚡</span>
               <span>VS</span>
             </div>
 
-            <button type="button" class="contender-btn" id="btnPickRight">
-              <div class="contender-art" id="rightArt">
-                <span class="contender-emoji" id="rightEmoji"></span>
+            <div class="contender-card-wrap" id="rightCardWrap">
+              <button type="button" class="contender-btn" id="btnPickRight">
+                <div id="rightArt" style="width:100%;"><img class="contender-banner-img" id="rightBannerImg" alt="Right contender visual banner" /><span id="rightEmoji" style="display:none;"></span></div>
+                <span class="contender-name" id="rightName"></span>
+                <span class="contender-tag" id="rightTag"></span>
+                <span class="contender-cta">← Tap to Advance</span>
+              </button>
+              <div class="contender-card-actions">
+                <button type="button" class="contender-photo-btn" id="btnRightPhoto" title="Upload or drag-and-drop custom contender photo">📷 Custom Photo (or Drop Image)</button>
+                <input type="file" id="rightPhotoInput" accept="image/*" hidden />
               </div>
-              <span class="contender-name" id="rightName"></span>
-              <span class="contender-tag" id="rightTag"></span>
-              <span class="contender-cta">← Tap to Advance</span>
-            </button>
+            </div>
           </div>
+          <div class="spice-card" id="spiceCard">
+            <div class="spice-header">
+              <span class="spice-title">Matchup Spice Meter &amp; Hot Takes</span>
+              <div class="spice-pills" id="spicePills">
+                <button type="button" class="spice-btn" data-spice="1">🌶️ Mild</button>
+                <button type="button" class="spice-btn active" data-spice="2">🌶️🌶️ Medium</button>
+                <button type="button" class="spice-btn" data-spice="3">🌶️🌶️🌶️ Inferno</button>
+              </div>
+            </div>
+            <div class="spice-vote-split" id="spiceVoteSplit">Local Session Split: 0 votes recorded on this matchup yet.</div>
+            <form class="hot-take-form" id="hotTakeForm">
+              <input class="input" id="hotTakeInput" type="text" maxlength="120" placeholder="Drop a one-line hot take on this matchup..." />
+              <button type="submit" class="btn btn-sm btn-primary">Post Take</button>
+            </form>
+            <div class="hot-take-list" id="hotTakeList"></div>
+          </div>
+          <p class="privacy-note">Your photos stay on your device. We do not store or transmit your images to any server.</p>
         </div>
 
         <div id="championStage" style="display:none;">
@@ -104,7 +134,7 @@
             <div class="champion-crown">👑</div>
             <div class="champion-title" id="championName"></div>
             <div class="champion-sub" id="championSub"></div>
-            <div class="btn-cluster">
+            <div class="btn-cluster" style="justify-content:center;">
               <button type="button" class="btn btn-primary" id="btnGoPoster">Bake Photo Into Viral Poster</button>
               <button type="button" class="btn" id="btnCopySummary">Copy Results</button>
             </div>
@@ -121,12 +151,22 @@
         <div class="arena-meta">
           <div>
             <h2 class="section-heading" id="treeTitle">Live Bracket Tree</h2>
-            <p class="section-sub">Visual knockout path from opening round to Grand Champion.</p>
+            <p class="section-sub">Visual knockout path from opening round to Grand Champion (pinch or wheel to zoom, drag to pan).</p>
           </div>
-          <button type="button" class="btn btn-sm" id="btnJumpArena">Back to Arena</button>
+          <div class="tree-controls">
+            <button type="button" class="btn btn-sm" id="btnZoomOut" title="Zoom out">−</button>
+            <button type="button" class="btn btn-sm" id="btnZoomIn" title="Zoom in">+</button>
+            <button type="button" class="btn btn-sm" id="btnZoomReset">Reset View</button>
+            <button type="button" class="btn btn-sm" id="btnJumpArena">Back to Arena</button>
+          </div>
         </div>
-        <div class="bracket-tree-scroll">
-          <div class="bracket-tree" id="bracketTreeGrid"></div>
+        <div class="tree-viewport" id="treeViewport">
+          <div class="tree-canvas-inner" id="treeCanvasInner">
+            <div class="bracket-tree" id="bracketTreeGrid"></div>
+          </div>
+          <div class="tree-minimap" id="treeMinimap" aria-hidden="true">
+            <div class="tree-minimap-box" id="treeMinimapBox"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -154,17 +194,17 @@
         <div class="card glass-card">
           <div class="badge-pill">GenAI Topic Studio</div>
           <h2 class="section-heading">Generate Viral Brackets with AI</h2>
-          <p class="section-sub">Enter any theme or connect your OpenRouter API key (BYOK — stays 100% in your browser) to generate an instant 8-contender tournament.</p>
+          <p class="section-sub" style="margin-bottom:0.85rem;">Type any topic below—works immediately out-of-the-box with our built-in Smart AI Synthesizer, or connect an optional OpenRouter API key (BYOK).</p>
 
           <form id="genaiForm">
             <div class="form-group">
               <label class="form-label" for="aiPromptInput">Topic Prompt</label>
-              <input class="input" id="aiPromptInput" type="text" maxlength="100" placeholder="e.g., Best 2000s Video Games or Iconic Hong Kong Street Foods" required />
+              <input class="input" id="aiPromptInput" type="text" maxlength="100" placeholder="e.g., Best Gundam Mobile Suits, Godzilla Kaiju, or Late-Night Ramen" required />
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="aiApiKeyInput">OpenRouter API Key (Optional — leave blank for Smart Idea Packs)</label>
-              <input class="input" id="aiApiKeyInput" type="password" placeholder="sk-or-v1-... (kept strictly in local browser memory)" />
+              <label class="form-label" for="aiApiKeyInput">OpenRouter API Key (Optional — leave blank for instant zero-key synthesis)</label>
+              <input class="input" id="aiApiKeyInput" type="password" placeholder="Optional: sk-or-v1-... (kept strictly in local browser memory)" />
             </div>
 
             <div class="form-group">
@@ -188,7 +228,7 @@
         <div class="card glass-card">
           <div class="badge-pill">Custom Builder</div>
           <h2 class="section-heading">Manual Bracket &amp; Link Share</h2>
-          <p class="section-sub">Edit or paste your own 8- or 16-contender list and share via URL hash.</p>
+          <p class="section-sub" style="margin-bottom:0.85rem;">Paste your own 4-, 8-, 16-, or 32-contender list and share via URL hash.</p>
 
           <div class="notice-banner">
             <strong>Community Safety Policy:</strong> Brackets are strictly for public topics, media, food, tech, and ideas—never private individuals or harassment.
@@ -203,8 +243,10 @@
             <div class="form-group">
               <label class="form-label" for="customSize">Bracket Size</label>
               <select class="select" id="customSize">
-                <option value="8">8 Contenders (7 Matches)</option>
+                <option value="4">4 Contenders (3 Matches)</option>
+                <option value="8" selected>8 Contenders (7 Matches)</option>
                 <option value="16">16 Contenders (15 Matches)</option>
+                <option value="32">32 Contenders (31 Matches)</option>
               </select>
             </div>
 
@@ -227,36 +269,52 @@
       <div class="card glass-card">
         <div class="poster-layout">
           <div class="poster-canvas-wrap">
-            <canvas id="posterCanvas" width="1080" height="1350"></canvas>
+            <canvas id="posterCanvas" width="1080" height="1920"></canvas>
           </div>
           <div>
             <div class="badge-pill">Viral Brand Engine</div>
             <h2 class="section-heading">Photo-Baked Winner Poster</h2>
             <p class="section-sub" style="margin-bottom:1rem;">
-              Upload your selfie, avatar, or reaction photo—baked locally right into your Champion spotlight alongside the <strong>VibeBracket Arena</strong> brand!
+              Upload your selfie, avatar, or winner photo—baked locally right into your Champion spotlight alongside the <strong>VibeBracket Arena · by NETHUSTLE</strong> brand!
             </p>
 
             <div class="form-group">
-              <label class="form-label" for="posterPhotoInput">1. Bake Your Photo Into Winner Card (100% Local)</label>
+              <label class="form-label" for="posterPhotoInput">1. Bake Your Photo Into Winner Spotlight (100% Local)</label>
               <input class="input" id="posterPhotoInput" type="file" accept="image/*" />
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="posterThemeSelect">2. Poster Visual Style</label>
-              <select class="select" id="posterThemeSelect">
-                <option value="cyber">Cyber Neon (Cyan &amp; Violet)</option>
-                <option value="magazine">Hype Magazine Cover (Gold &amp; Obsidian)</option>
-                <option value="anime">Anime Versus (Crimson &amp; Electric)</option>
+              <label class="form-label" for="posterAspectSelect">2. Poster Format</label>
+              <select class="select" id="posterAspectSelect">
+                <option value="9:16">9:16 Vertical Story (1080×1920)</option>
+                <option value="1:1">1:1 Square Feed (1080×1080)</option>
+                <option value="4:5">4:5 Classic Portrait (1080×1350)</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="posterHandleInput">3. Your Handle / Tag (Optional)</label>
+              <label class="form-label" for="posterThemeSelect">3. Poster Visual Style</label>
+              <select class="select" id="posterThemeSelect">
+                <option value="cyber">Cyber Neon (Cyan &amp; Violet)</option>
+                <option value="magazine">Hype Magazine Cover (Gold &amp; Obsidian)</option>
+                <option value="anime">Anime Versus (Crimson &amp; Electric)</option>
+                <option value="gold">Gold Championship Edition</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="posterQuoteInput">4. Your Winner Quote / Hot Take</label>
+              <input class="input" id="posterQuoteInput" type="text" maxlength="38" placeholder="e.g., Undisputed GOAT — no debate!" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="posterHandleInput">5. Your Handle / Tag (Optional)</label>
               <input class="input" id="posterHandleInput" type="text" maxlength="32" placeholder="@yourhandle" />
             </div>
 
             <div class="btn-cluster-col">
               <button type="button" class="btn btn-primary" id="btnDownloadPoster">Download 1080×1350 PNG Poster</button>
+              <button type="button" class="btn" id="btnSharePoster">Share Poster</button>
               <button type="button" class="btn" id="btnCopyShareText">Copy Viral Caption</button>
               <button type="button" class="btn" id="btnClearPhoto">Remove Photo</button>
             </div>
@@ -267,7 +325,7 @@
   </main>
 
   <footer class="footer">
-    <div><strong>VibeBracket Arena</strong> · Built by <strong>Hustle Software Labs Ltd.</strong> ("Make money, Legally, NEVER HARM ANY HUMAN")</div>
+    <div><strong>VibeBracket Arena</strong> · Built by <strong>NetHustle Software Labs Ltd.</strong> ("Make money, Legally, NEVER HARM ANY HUMAN")</div>
     <div class="footer-links">
       <button type="button" class="link-btn" id="btnOpenLegal">Terms, Privacy &amp; Anti-Harassment Policy</button>
     </div>
@@ -288,8 +346,10 @@
 
   <script src="js/version.js"></script>
   <script src="js/logger.js"></script>
+  <script src="js/visuals.js"></script>
   <script src="js/state.js"></script>
   <script src="js/genai.js"></script>
+  <script src="js/clash.js"></script>
   <script src="js/poster.js"></script>
   <script src="js/app.js"></script>
 </body>
