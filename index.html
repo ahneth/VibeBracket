@@ -1,0 +1,296 @@
+<!-- Version: 1.1.0 | Last Modified: 2026-11-13 07:46 HKT -->
+<!--
+  File: index.html
+  Description: Main HTML entry point for VibeBracket Arena (by Hustle Software Labs Ltd.).
+  Change Log:
+    - v1.0.0 (2026-11-13 07:26 HKT): Initial prototype single-file release.
+    - v1.1.0 (2026-11-13 07:46 HKT): Modularized into index.html + css/styles.css + js/*.js; added visual Bracket Tree, Web Audio SFX, GenAI Topic Studio, and Photo-Baked Viral Poster Studio.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeBracket Arena — Interactive Brackets, Tier Lists &amp; AI Posters by Hustle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">VB</div>
+        <div>
+          <span class="brand-title">VibeBracket Arena</span>
+          <span class="brand-sub" id="brandVersionLabel">by Hustle · v1.1.0</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" aria-label="Primary sections">
+        <button type="button" class="nav-tab active" data-tab="arena">1v1 Arena</button>
+        <button type="button" class="nav-tab" data-tab="tree">Bracket Tree</button>
+        <button type="button" class="nav-tab" data-tab="tiers">Tier List</button>
+        <button type="button" class="nav-tab" data-tab="genai">AI &amp; Create</button>
+        <button type="button" class="nav-tab" data-tab="poster">Photo Poster</button>
+      </nav>
+
+      <div class="topbar-actions">
+        <button type="button" class="btn btn-sm" id="btnToggleSfx" title="Toggle sound effects">SFX: ON</button>
+        <button type="button" class="btn btn-sm" id="btnOpenLogs">Logs</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnOpenPro">Pro</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- TAB 1: 1v1 KNOCKOUT ARENA -->
+    <section id="panel-arena" class="panel active">
+      <div class="topic-strip">
+        <div class="topic-pills" id="topicPills"></div>
+        <div class="action-row">
+          <button type="button" class="btn btn-sm" id="btnUndoVote" disabled>Undo</button>
+          <button type="button" class="btn btn-sm" id="btnResetBracket">Restart</button>
+        </div>
+      </div>
+
+      <div class="card glass-card">
+        <div class="arena-meta">
+          <span class="round-badge" id="roundBadge">Round of 8</span>
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span id="matchCounter">Match 1 of 7</span>
+              <span id="progressPct">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="arenaBracketTitle" class="section-heading"></h2>
+        <p id="arenaBracketSubtitle" class="section-sub"></p>
+
+        <div id="matchupStage">
+          <div class="matchup-grid">
+            <button type="button" class="contender-btn" id="btnPickLeft">
+              <div class="contender-art" id="leftArt">
+                <span class="contender-emoji" id="leftEmoji"></span>
+              </div>
+              <span class="contender-name" id="leftName"></span>
+              <span class="contender-tag" id="leftTag"></span>
+              <span class="contender-cta">Tap to Advance →</span>
+            </button>
+
+            <div class="vs-badge">
+              <span class="vs-bolt">⚡</span>
+              <span>VS</span>
+            </div>
+
+            <button type="button" class="contender-btn" id="btnPickRight">
+              <div class="contender-art" id="rightArt">
+                <span class="contender-emoji" id="rightEmoji"></span>
+              </div>
+              <span class="contender-name" id="rightName"></span>
+              <span class="contender-tag" id="rightTag"></span>
+              <span class="contender-cta">← Tap to Advance</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="championStage" style="display:none;">
+          <div class="champion-box">
+            <div class="champion-crown">👑</div>
+            <div class="champion-title" id="championName"></div>
+            <div class="champion-sub" id="championSub"></div>
+            <div class="btn-cluster">
+              <button type="button" class="btn btn-primary" id="btnGoPoster">Bake Photo Into Viral Poster</button>
+              <button type="button" class="btn" id="btnCopySummary">Copy Results</button>
+            </div>
+          </div>
+
+          <div class="standings-grid" id="podiumGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: VISUAL BRACKET TREE -->
+    <section id="panel-tree" class="panel">
+      <div class="card glass-card">
+        <div class="arena-meta">
+          <div>
+            <h2 class="section-heading" id="treeTitle">Live Bracket Tree</h2>
+            <p class="section-sub">Visual knockout path from opening round to Grand Champion.</p>
+          </div>
+          <button type="button" class="btn btn-sm" id="btnJumpArena">Back to Arena</button>
+        </div>
+        <div class="bracket-tree-scroll">
+          <div class="bracket-tree" id="bracketTreeGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: TIER LIST -->
+    <section id="panel-tiers" class="panel">
+      <div class="card glass-card">
+        <div class="arena-meta">
+          <div>
+            <h2 class="section-heading" id="tierTitle">Tier List Mode</h2>
+            <p class="section-sub">Assign contenders to S, A, B, C, or D tier. Syncs live to your Share Poster.</p>
+          </div>
+          <button type="button" class="btn btn-sm" id="btnClearTiers">Clear Tiers</button>
+        </div>
+
+        <div class="tier-rows" id="tierRows"></div>
+        <h3 class="pool-heading">Contender Pool</h3>
+        <div class="tier-pool" id="tierPool"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: GENAI TOPIC STUDIO & CUSTOM CREATOR -->
+    <section id="panel-genai" class="panel">
+      <div class="two-col-grid">
+        <div class="card glass-card">
+          <div class="badge-pill">GenAI Topic Studio</div>
+          <h2 class="section-heading">Generate Viral Brackets with AI</h2>
+          <p class="section-sub">Enter any theme or connect your OpenRouter API key (BYOK — stays 100% in your browser) to generate an instant 8-contender tournament.</p>
+
+          <form id="genaiForm">
+            <div class="form-group">
+              <label class="form-label" for="aiPromptInput">Topic Prompt</label>
+              <input class="input" id="aiPromptInput" type="text" maxlength="100" placeholder="e.g., Best 2000s Video Games or Iconic Hong Kong Street Foods" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="aiApiKeyInput">OpenRouter API Key (Optional — leave blank for Smart Idea Packs)</label>
+              <input class="input" id="aiApiKeyInput" type="password" placeholder="sk-or-v1-... (kept strictly in local browser memory)" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="aiModelSelect">Model</label>
+              <select class="select" id="aiModelSelect">
+                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash (Fast &amp; Low Cost)</option>
+                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnRunGenAI">Generate AI Bracket</button>
+          </form>
+
+          <div class="smart-packs">
+            <span class="pool-heading">1-Click Trending Packs:</span>
+            <div class="topic-pills" id="aiPackButtons"></div>
+          </div>
+        </div>
+
+        <div class="card glass-card">
+          <div class="badge-pill">Custom Builder</div>
+          <h2 class="section-heading">Manual Bracket &amp; Link Share</h2>
+          <p class="section-sub">Edit or paste your own 8- or 16-contender list and share via URL hash.</p>
+
+          <div class="notice-banner">
+            <strong>Community Safety Policy:</strong> Brackets are strictly for public topics, media, food, tech, and ideas—never private individuals or harassment.
+          </div>
+
+          <form id="createBracketForm">
+            <div class="form-group">
+              <label class="form-label" for="customTitle">Tournament Title</label>
+              <input class="input" id="customTitle" type="text" maxlength="80" placeholder="e.g., Best Sci-Fi Movies of All Time" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="customSize">Bracket Size</label>
+              <select class="select" id="customSize">
+                <option value="8">8 Contenders (7 Matches)</option>
+                <option value="16">16 Contenders (15 Matches)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="customItems">Contenders (One per line)</label>
+              <textarea class="textarea" id="customItems" rows="6" placeholder="Dune: Part Two&#10;Blade Runner 2049&#10;Interstellar&#10;Arrival&#10;The Matrix&#10;Ex Machina&#10;Inception&#10;Alien" required></textarea>
+            </div>
+
+            <div class="btn-cluster">
+              <button type="submit" class="btn btn-primary">Launch Bracket</button>
+              <button type="button" class="btn" id="btnExportBracketLink">Copy Share Link</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: PHOTO-BAKED VIRAL SHARE POSTER -->
+    <section id="panel-poster" class="panel">
+      <div class="card glass-card">
+        <div class="poster-layout">
+          <div class="poster-canvas-wrap">
+            <canvas id="posterCanvas" width="1080" height="1350"></canvas>
+          </div>
+          <div>
+            <div class="badge-pill">Viral Brand Engine</div>
+            <h2 class="section-heading">Photo-Baked Winner Poster</h2>
+            <p class="section-sub" style="margin-bottom:1rem;">
+              Upload your selfie, avatar, or reaction photo—baked locally right into your Champion spotlight alongside the <strong>VibeBracket Arena</strong> brand!
+            </p>
+
+            <div class="form-group">
+              <label class="form-label" for="posterPhotoInput">1. Bake Your Photo Into Winner Card (100% Local)</label>
+              <input class="input" id="posterPhotoInput" type="file" accept="image/*" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="posterThemeSelect">2. Poster Visual Style</label>
+              <select class="select" id="posterThemeSelect">
+                <option value="cyber">Cyber Neon (Cyan &amp; Violet)</option>
+                <option value="magazine">Hype Magazine Cover (Gold &amp; Obsidian)</option>
+                <option value="anime">Anime Versus (Crimson &amp; Electric)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="posterHandleInput">3. Your Handle / Tag (Optional)</label>
+              <input class="input" id="posterHandleInput" type="text" maxlength="32" placeholder="@yourhandle" />
+            </div>
+
+            <div class="btn-cluster-col">
+              <button type="button" class="btn btn-primary" id="btnDownloadPoster">Download 1080×1350 PNG Poster</button>
+              <button type="button" class="btn" id="btnCopyShareText">Copy Viral Caption</button>
+              <button type="button" class="btn" id="btnClearPhoto">Remove Photo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div><strong>VibeBracket Arena</strong> · Built by <strong>Hustle Software Labs Ltd.</strong> ("Make money, Legally, NEVER HARM ANY HUMAN")</div>
+    <div class="footer-links">
+      <button type="button" class="link-btn" id="btnOpenLegal">Terms, Privacy &amp; Anti-Harassment Policy</button>
+    </div>
+  </footer>
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Modal</h3>
+        <button type="button" class="btn btn-sm" id="btnCloseModal">Close</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/version.js"></script>
+  <script src="js/logger.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/genai.js"></script>
+  <script src="js/poster.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
