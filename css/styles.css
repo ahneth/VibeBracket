@@ -1,14 +1,17 @@
-/* Version: 1.1.0 | Last Modified: 2026-11-13 07:46 HKT */
+/* Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT */
 /*
   File: css/styles.css
-  Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and responsive layout for VibeBracket Arena.
+  Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
   Change Log:
     - v1.0.0 (2026-11-13 07:26 HKT): Initial inline styles.
-    - v1.1.0 (2026-11-13 07:46 HKT): Extracted to css/styles.css; added visual contender art badges, animated VS lightning, Bracket Tree grid, and 2-column GenAI/Poster studio layouts.
+    - v1.1.0 (2026-11-13 07:46 HKT): Extracted to css/styles.css; added Bracket Tree grid and 2-column GenAI/Poster studio layouts.
+    - v1.2.0 (2026-11-13 08:15 HKT): Added full-bleed SVG/photo contender artwork banners, particle FX overlay canvas, and enhanced visual polish.
+    - v2.0.0 (2026-11-13 17:55 HKT): Added Versus Clash keyframes, Spice Meter, Pan/Zoom Bracket Tree, and Mini-Map styles.
+    - v2.1.0 (2026-11-13 19:29 HKT): Added non-nested contender-card-wrap, drag-and-drop highlight state, and spice vote split bar.
 */
 :root {
   --bg-canvas: #090d16;
-  --bg-surface: rgba(17, 24, 39, 0.85);
+  --bg-surface: rgba(17, 24, 39, 0.86);
   --bg-elevated: #1e293b;
   --bg-hover: #283548;
   --border-subtle: rgba(148, 163, 184, 0.22);
@@ -42,10 +45,18 @@ body {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.14), transparent 42%),
-    radial-gradient(circle at 88% 8%, rgba(192, 132, 252, 0.14), transparent 42%),
+    radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.15), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(192, 132, 252, 0.15), transparent 42%),
     var(--bg-canvas);
   overflow-x: hidden;
+}
+
+#fxCanvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 80;
+  display: none;
 }
 
 .topbar {
@@ -247,49 +258,46 @@ body {
 .matchup-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 1rem;
+  gap: 1.15rem;
   align-items: stretch;
   margin: 1.1rem 0;
 }
 
 .contender-btn {
-  background: linear-gradient(160deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
   border: 2px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 1.5rem 1.15rem;
+  padding: 0.9rem;
   color: var(--text-primary);
   text-align: center;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  min-height: 235px;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  justify-content: space-between;
+  gap: 0.65rem;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .contender-btn:hover {
   transform: translateY(-4px);
   border-color: var(--accent-cyan);
-  box-shadow: 0 14px 30px rgba(56, 189, 248, 0.18);
+  box-shadow: 0 16px 34px rgba(56, 189, 248, 0.22);
 }
 
-.contender-art {
-  width: 78px;
-  height: 78px;
-  border-radius: 20px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(192, 132, 252, 0.22));
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  margin-bottom: 0.2rem;
+.contender-banner-img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: block;
 }
 
-.contender-emoji { font-size: 2.6rem; line-height: 1; }
-.contender-name { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }
-.contender-tag { font-size: 0.78rem; color: var(--text-secondary); background: rgba(255, 255, 255, 0.06); padding: 0.22rem 0.65rem; border-radius: var(--radius-pill); }
-.contender-cta { margin-top: 0.3rem; font-size: 0.74rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.06em; }
+.contender-name { font-size: 1.3rem; font-weight: 900; letter-spacing: -0.01em; margin-top: 0.2rem; }
+.contender-tag { font-size: 0.78rem; color: var(--text-secondary); background: rgba(255, 255, 255, 0.07); padding: 0.22rem 0.7rem; border-radius: var(--radius-pill); }
+.contender-cta { font-size: 0.76rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 0.2rem; }
 
 .vs-badge {
   display: flex;
@@ -297,12 +305,12 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--status-amber);
   padding: 0 0.25rem;
 }
 
-.vs-bolt { font-size: 1.4rem; }
+.vs-bolt { font-size: 1.6rem; }
 
 .champion-box {
   text-align: center;
@@ -314,7 +322,7 @@ body {
 }
 
 .champion-crown { font-size: 2.8rem; margin-bottom: 0.35rem; }
-.champion-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.35rem; }
+.champion-title { font-size: 1.55rem; font-weight: 900; margin-bottom: 0.35rem; }
 .champion-sub { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem; }
 
 .standings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
@@ -383,6 +391,148 @@ canvas#posterCanvas { max-width: 100%; height: auto; border-radius: var(--radius
   html { font-size: 13.5px; }
   .matchup-grid { grid-template-columns: 1fr; }
   .vs-badge { flex-direction: row; gap: 0.35rem; padding: 0.2rem 0; }
-  .contender-btn { min-height: 150px; padding: 1.1rem; }
   .poster-layout { grid-template-columns: 1fr; }
+}
+
+/* === v2.0.0 Track A Enhancements === */
+@keyframes clashLeft {
+  0% { opacity: 0; transform: translateX(-48px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes clashRight {
+  0% { opacity: 0; transform: translateX(48px) scale(0.95); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes vsSlam {
+  0% { opacity: 0; transform: scale(1.8) rotate(-14deg); }
+  65% { opacity: 1; transform: scale(0.92) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.matchup-grid.clashing #btnPickLeft { animation: clashLeft 0.36s cubic-bezier(0.22, 1, 0.36, 1); }
+.matchup-grid.clashing #btnPickRight { animation: clashRight 0.36s cubic-bezier(0.22, 1, 0.36, 1); }
+.matchup-grid.clashing .vs-badge { animation: vsSlam 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
+
+.contender-photo-btn {
+  margin-top: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.85);
+  color: #38bdf8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.contender-photo-btn:hover { background: rgba(56, 189, 248, 0.18); transform: translateY(-1px); }
+
+.privacy-note {
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.spice-card {
+  margin-top: 1.1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.spice-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+}
+.spice-title { font-size: 0.85rem; font-weight: 800; color: #f8fafc; letter-spacing: 0.02em; }
+.spice-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.spice-btn {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.7);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.spice-btn.active {
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.22);
+  color: #fdba74;
+}
+.hot-take-form { display: flex; gap: 0.5rem; margin-bottom: 0.55rem; }
+.hot-take-form .input { flex: 1; }
+.hot-take-list { display: flex; flex-direction: column; gap: 0.35rem; max-height: 110px; overflow-y: auto; }
+.hot-take-item {
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.6);
+  border-left: 3px solid #38bdf8;
+}
+
+.tree-controls { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.tree-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(9, 13, 22, 0.65);
+  min-height: 360px;
+  cursor: grab;
+}
+.tree-viewport:active { cursor: grabbing; }
+.tree-canvas-inner {
+  transform-origin: 0 0;
+  transition: transform 0.08s ease-out;
+  padding: 1rem;
+  display: inline-block;
+}
+.tree-minimap {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 110px;
+  height: 68px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  pointer-events: none;
+  overflow: hidden;
+  padding: 4px;
+}
+.tree-minimap-box {
+  border: 1.5px solid #38bdf8;
+  background: rgba(56, 189, 248, 0.16);
+  width: 44px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.contender-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  border-radius: var(--radius-lg);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.contender-card-wrap.drag-over .contender-btn {
+  border-color: var(--status-emerald);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.35);
+}
+.contender-card-actions {
+  display: flex;
+  justify-content: center;
+}
+.spice-vote-split {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  margin-bottom: 0.55rem;
 }
