@@ -1,15 +1,20 @@
-// Version: 1.1.0 | Last Modified: 2026-11-13 07:46 HKT
+// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
 /**
  * File: js/app.js
- * Description: Main UI controller, event wiring, Bracket Tree renderer, and modal/toast orchestration.
+ * Description: Main UI controller, visual banner binding, Bracket Tree renderer, and modal/toast orchestration.
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial monolithic script.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Modularized into js/app.js; added Bracket Tree rendering, GenAI studio wiring, and photo upload baking.
+ *   - v1.2.0 (2026-11-13 08:15 HKT): Wired SVG/photo contender banners, celebratory confetti burst on Champion crown, and winner quote poster input.
+ *   - v2.0.0 (2026-11-13 17:55 HKT): Wired contender photo uploads, Spice Meter, Hot-Takes, Pan/Zoom tree, and 9:16/1:1 posters.
+ *   - v2.1.0 (2026-11-13 19:29 HKT): Added drag-and-drop contender photo support, mobile pinch-to-zoom & touch pan on Bracket Tree, live vote percentage split in Spice Card, and champion custom photo fallback in poster spotlight.
  */
 (function () {
   'use strict';
 
   let cachedPhotoImg = null;
+  let cachedChampionImg = null;
+  let cachedChampionPhotoUrl = null;
 
   /** Creates a DOM element safely using textContent (OWASP A05 XSS prevention). */
   function createSafeEl(tag, text, className) {
@@ -78,7 +83,7 @@
     const b = window.VibeState.getActiveBracket();
 
     document.getElementById('arenaBracketTitle').textContent = topic.title;
-    document.getElementById('arenaBracketSubtitle').textContent = topic.subtitle || 'Tap a contender to advance.';
+    document.getElementById('arenaBracketSubtitle').textContent = topic.subtitle || 'Tap a contender card to advance.';
     document.getElementById('btnUndoVote').disabled = b.history.length === 0;
 
     const totalMatches = topic.items.length - 1;
@@ -94,7 +99,7 @@
       document.getElementById('matchupStage').style.display = 'none';
       document.getElementById('championStage').style.display = 'block';
       document.getElementById('championName').textContent = (b.champion.emoji || '👑') + ' ' + b.champion.name;
-      document.getElementById('championSub').textContent = 'Crowned Champion of "' + topic.title + '"';
+      document.getElementById('championSub').textContent = 'Crowned Grand Champion of "' + topic.title + '"';
 
       const podium = document.getElementById('podiumGrid');
       podium.textContent = '';
@@ -119,13 +124,54 @@
     document.getElementById('roundBadge').textContent = getRoundName(round.length);
     document.getElementById('matchCounter').textContent = 'Match ' + (completed + 1) + ' of ' + totalMatches;
 
+    const leftCustom = window.VibeState.getContenderPhoto(match.left.id);
+    const rightCustom = window.VibeState.getContenderPhoto(match.right.id);
+
     document.getElementById('leftEmoji').textContent = match.left.emoji || '⚡';
+    document.getElementById('leftBannerImg').src = leftCustom || window.VibeVisuals.getContenderBannerUrl(match.left, b.currentMatchIdx * 2 + 1);
     document.getElementById('leftName').textContent = match.left.name;
     document.getElementById('leftTag').textContent = match.left.tag || 'Contender';
 
     document.getElementById('rightEmoji').textContent = match.right.emoji || '🔥';
+    document.getElementById('rightBannerImg').src = rightCustom || window.VibeVisuals.getContenderBannerUrl(match.right, b.currentMatchIdx * 2 + 2);
     document.getElementById('rightName').textContent = match.right.name;
     document.getElementById('rightTag').textContent = match.right.tag || 'Contender';
+
+    window.VibeClash.triggerClash(document.querySelector('.matchup-grid'));
+    renderSpiceAndHotTakes(topic.id, b.currentRoundIdx, b.currentMatchIdx, match);
+  }
+
+  function renderSpiceAndHotTakes(topicId, roundIdx, matchIdx, matchObj) {
+    const htData = window.VibeState.getMatchHotTakeData(topicId, roundIdx, matchIdx);
+    document.querySelectorAll('#spicePills .spice-btn').forEach((btn) => {
+      btn.classList.toggle('active', Number(btn.dataset.spice) === htData.spice);
+    });
+
+    const splitEl = document.getElementById('spiceVoteSplit');
+    if (splitEl && matchObj) {
+      const totalV = (htData.leftVotes || 0) + (htData.rightVotes || 0);
+      if (totalV === 0) {
+        splitEl.textContent = 'Local Session Split: 0 votes recorded on this matchup yet.';
+      } else {
+        const lPct = Math.round(((htData.leftVotes || 0) / totalV) * 100);
+        const rPct = 100 - lPct;
+        splitEl.textContent = 'Local Session Split: ' + matchObj.left.name + ' ' + lPct + '% vs ' + matchObj.right.name + ' ' + rPct + '% (' + totalV + ' vote' + (totalV > 1 ? 's' : '') + ')';
+      }
+    }
+
+    const list = document.getElementById('hotTakeList');
+    if (!list) return;
+    list.textContent = '';
+    if (!htData.takes.length) {
+      const hint = createSafeEl('div', 'No hot takes yet for this matchup — drop the first zinger!', 'hot-take-item');
+      hint.style.opacity = '0.7';
+      list.appendChild(hint);
+    } else {
+      htData.takes.forEach((t) => {
+        const prefix = '🌶️'.repeat(t.spice || 2) + ' ';
+        list.appendChild(createSafeEl('div', prefix + t.text, 'hot-take-item'));
+      });
+    }
   }
 
   function renderBracketTree() {
@@ -231,10 +277,32 @@
     const topic = window.VibeState.getActiveTopic();
     const bracket = window.VibeState.getActiveBracket();
     const tierMap = window.VibeState.data.tiers[topic.id] || {};
+
+    let activePhoto = cachedPhotoImg;
+    if (!activePhoto && bracket.champion) {
+      const champUrl = window.VibeState.getContenderPhoto(bracket.champion.id);
+      if (champUrl) {
+        if (cachedChampionPhotoUrl === champUrl && cachedChampionImg) {
+          activePhoto = cachedChampionImg;
+        } else {
+          cachedChampionPhotoUrl = champUrl;
+          const img = new Image();
+          img.onload = () => {
+            cachedChampionImg = img;
+            refreshPosterCanvas();
+          };
+          img.src = champUrl;
+        }
+      }
+    }
+
     window.VibePoster.render(canvas, topic, bracket, tierMap, {
       theme: window.VibeState.data.posterTheme,
+      aspect: window.VibeState.data.posterAspect || '9:16',
       handle: window.VibeState.data.userHandle,
-      photoImg: cachedPhotoImg
+      quote: window.VibeState.data.userQuote || '',
+      topHotTake: window.VibeState.getTopicTopHotTake(topic.id),
+      photoImg: activePhoto
     });
   }
 
@@ -247,6 +315,7 @@
   }
 
   function pickWinner(side) {
+    const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
     if (b.champion) return;
 
@@ -255,6 +324,7 @@
     const winner = side === 'left' ? match.left : match.right;
     const loser = side === 'left' ? match.right : match.left;
 
+    window.VibeState.recordMatchVote(topic.id, b.currentRoundIdx, b.currentMatchIdx, side);
     b.history.push({ roundIdx: b.currentRoundIdx, matchIdx: b.currentMatchIdx, side });
     match.winner = winner;
     window.AppLogger.info('Advanced "' + winner.name + '" over "' + loser.name + '"');
@@ -265,6 +335,7 @@
       b.runnerUp = loser;
       b.champion = winner;
       window.VibeAudio.win();
+      window.VibeVisuals.triggerConfetti();
       window.VibeState.save();
       renderAll();
       showToast('Champion Crowned: ' + winner.name + '!');
@@ -372,8 +443,8 @@
   function buildCaptionText() {
     const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
-    if (!b.champion) return 'Playing "' + topic.title + '" on VibeBracket Arena by Hustle!';
-    return '👑 My "' + topic.title + '" Champion: ' + b.champion.name + ' (Runner-up: ' + (b.runnerUp ? b.runnerUp.name : '—') + ') — Built on VibeBracket Arena by Hustle!';
+    if (!b.champion) return 'Playing "' + topic.title + '" on VibeBracket Arena by NetHustle!';
+    return '👑 My "' + topic.title + '" Champion: ' + b.champion.name + ' (Runner-up: ' + (b.runnerUp ? b.runnerUp.name : '—') + ') — Built on VibeBracket Arena by NetHustle!';
   }
 
   document.getElementById('btnCopySummary').addEventListener('click', () => copyTextSafe(buildCaptionText(), 'Results copied!'));
@@ -382,14 +453,21 @@
   document.getElementById('btnDownloadPoster').addEventListener('click', () => {
     refreshPosterCanvas();
     const link = document.createElement('a');
-    link.download = 'VibeBracket_Poster_Hustle.png';
+    link.download = 'VibeBracket_Poster_NetHustle.png';
     link.href = document.getElementById('posterCanvas').toDataURL('image/png');
     link.click();
-    showToast('1080×1350 Poster PNG downloaded!');
+    const aspect = window.VibeState.data.posterAspect || '9:16';
+    showToast(aspect + ' Poster PNG downloaded!');
   });
 
   document.getElementById('posterThemeSelect').addEventListener('change', (e) => {
     window.VibeState.data.posterTheme = e.target.value;
+    window.VibeState.save();
+    refreshPosterCanvas();
+  });
+
+  document.getElementById('posterQuoteInput').addEventListener('input', (e) => {
+    window.VibeState.data.userQuote = e.target.value.trim();
     window.VibeState.save();
     refreshPosterCanvas();
   });
@@ -493,14 +571,14 @@
 
   document.getElementById('btnOpenPro').addEventListener('click', () => {
     openModal('VibeBracket Creator Pro ($9.99/mo or $79/yr)', [
-      'Free Tier includes unlimited 8/16-contender brackets, live Bracket Tree, Tier-List mode, 1-Click Trending AI Packs, and Photo-Baked PNG Posters.',
-      'Creator Pro unlocks 64-contender mega-brackets, managed AI topic generation credits, custom brand watermarks, and audience sentiment analytics.'
+      'Free Tier includes unlimited 4/8/16/32-contender brackets, custom contender photo uploads, live Pan/Zoom Bracket Tree, Tier-List mode, zero-key AI topic synthesis, and 9:16 & 1:1 Photo-Baked PNG Posters.',
+      'Creator Pro unlocks 64-contender mega-brackets, custom brand watermarks, and audience sentiment analytics.'
     ]);
   });
 
   document.getElementById('btnOpenLegal').addEventListener('click', () => {
     openModal('Terms, Privacy & Anti-Harassment Policy', [
-      'Hustle Software Labs Ltd. operates under: "Make money, Legally, NEVER HARM ANY HUMAN."',
+      'NetHustle Software Labs Ltd. operates under: "Make money, Legally, NEVER HARM ANY HUMAN."',
       'Privacy Guarantee: Uploaded photos, brackets, and BYOK API keys are processed 100% locally in your browser.',
       'Anti-Harassment Rule: Custom brackets are restricted to public media, topics, food, and ideas—never private individuals.'
     ]);
@@ -511,10 +589,204 @@
     if (e.target.id === 'modalBackdrop') document.getElementById('modalBackdrop').classList.remove('open');
   });
 
+  // v2.1.0: Custom Contender Photo Uploads (Click + Drag-and-Drop, 100% local)
+  async function handleContenderFile(file, side) {
+    if (!file) return;
+    try {
+      const b = window.VibeState.getActiveBracket();
+      if (b.champion) return;
+      const match = b.rounds[b.currentRoundIdx][b.currentMatchIdx];
+      const targetItem = side === 'left' ? match.left : match.right;
+      const dataUrl = await window.VibeClash.compressPhoto(file);
+      window.VibeState.setContenderPhoto(targetItem.id, dataUrl);
+      renderArena();
+      refreshPosterCanvas();
+      showToast('Custom photo saved locally for ' + targetItem.name + '!');
+    } catch (err) {
+      showToast(err.message || 'Could not process image.');
+    }
+  }
+
+  function wireContenderPhoto(btnId, inputId, cardId, side) {
+    const btn = document.getElementById(btnId);
+    const inp = document.getElementById(inputId);
+    const cardEl = document.getElementById(cardId);
+    if (!btn || !inp) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      inp.click();
+    });
+    inp.addEventListener('click', (e) => e.stopPropagation());
+    inp.addEventListener('change', async (e) => {
+      e.stopPropagation();
+      const file = e.target.files && e.target.files[0];
+      await handleContenderFile(file, side);
+      inp.value = '';
+    });
+    if (cardEl && window.VibeClash.bindDropZone) {
+      window.VibeClash.bindDropZone(cardEl, (file) => handleContenderFile(file, side));
+    }
+  }
+  wireContenderPhoto('btnLeftPhoto', 'leftPhotoInput', 'leftCardWrap', 'left');
+  wireContenderPhoto('btnRightPhoto', 'rightPhotoInput', 'rightCardWrap', 'right');
+
+  // v2.0.0+: Spice Meter & Hot Takes
+  document.querySelectorAll('#spicePills .spice-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const b = window.VibeState.getActiveBracket();
+      if (b.champion) return;
+      const topic = window.VibeState.getActiveTopic();
+      const match = b.rounds[b.currentRoundIdx][b.currentMatchIdx];
+      window.VibeState.setMatchSpice(topic.id, b.currentRoundIdx, b.currentMatchIdx, Number(btn.dataset.spice));
+      renderSpiceAndHotTakes(topic.id, b.currentRoundIdx, b.currentMatchIdx, match);
+    });
+  });
+
+  document.getElementById('hotTakeForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('hotTakeInput');
+    const val = input.value.trim();
+    if (!val) return;
+    const b = window.VibeState.getActiveBracket();
+    if (b.champion) return;
+    const topic = window.VibeState.getActiveTopic();
+    const match = b.rounds[b.currentRoundIdx][b.currentMatchIdx];
+    window.VibeState.addMatchHotTake(topic.id, b.currentRoundIdx, b.currentMatchIdx, val);
+    input.value = '';
+    renderSpiceAndHotTakes(topic.id, b.currentRoundIdx, b.currentMatchIdx, match);
+    refreshPosterCanvas();
+    showToast('Hot take recorded locally!');
+  });
+
+  // v2.1.0: Bracket Tree Pan & Zoom + Mobile Touch Pinch/Pan + Mini-Map
+  let treeScale = 1;
+  let treeX = 0;
+  let treeY = 0;
+  let isDraggingTree = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let initialPinchDist = null;
+  let initialPinchScale = 1;
+
+  function applyTreeTransform() {
+    const inner = document.getElementById('treeCanvasInner');
+    const miniBox = document.getElementById('treeMinimapBox');
+    if (inner) {
+      inner.style.transform = 'translate(' + treeX + 'px, ' + treeY + 'px) scale(' + treeScale + ')';
+    }
+    if (miniBox) {
+      const mx = Math.max(0, Math.min(60, 24 - treeX * 0.08));
+      const my = Math.max(0, Math.min(34, 14 - treeY * 0.08));
+      miniBox.style.transform = 'translate(' + mx + 'px, ' + my + 'px) scale(' + Math.max(0.5, 1 / treeScale) + ')';
+    }
+  }
+
+  document.getElementById('btnZoomIn').addEventListener('click', () => {
+    treeScale = Math.min(2.2, +(treeScale + 0.2).toFixed(2));
+    applyTreeTransform();
+  });
+  document.getElementById('btnZoomOut').addEventListener('click', () => {
+    treeScale = Math.max(0.45, +(treeScale - 0.2).toFixed(2));
+    applyTreeTransform();
+  });
+  document.getElementById('btnZoomReset').addEventListener('click', () => {
+    treeScale = 1; treeX = 0; treeY = 0;
+    applyTreeTransform();
+  });
+
+  const treeViewport = document.getElementById('treeViewport');
+  if (treeViewport) {
+    treeViewport.addEventListener('mousedown', (e) => {
+      isDraggingTree = true;
+      dragStartX = e.clientX - treeX;
+      dragStartY = e.clientY - treeY;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingTree) return;
+      treeX = e.clientX - dragStartX;
+      treeY = e.clientY - dragStartY;
+      applyTreeTransform();
+    });
+    window.addEventListener('mouseup', () => { isDraggingTree = false; });
+    treeViewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      treeScale = Math.max(0.45, Math.min(2.2, +(treeScale + delta).toFixed(2)));
+      applyTreeTransform();
+    }, { passive: false });
+
+    // Mobile Touch Pan & Pinch-to-Zoom
+    treeViewport.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDraggingTree = true;
+        dragStartX = e.touches[0].clientX - treeX;
+        dragStartY = e.touches[0].clientY - treeY;
+      } else if (e.touches.length === 2) {
+        isDraggingTree = false;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        initialPinchDist = Math.hypot(dx, dy);
+        initialPinchScale = treeScale;
+      }
+    }, { passive: true });
+
+    treeViewport.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && isDraggingTree) {
+        treeX = e.touches[0].clientX - dragStartX;
+        treeY = e.touches[0].clientY - dragStartY;
+        applyTreeTransform();
+      } else if (e.touches.length === 2 && initialPinchDist) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const ratio = dist / initialPinchDist;
+        treeScale = Math.max(0.45, Math.min(2.2, +(initialPinchScale * ratio).toFixed(2)));
+        applyTreeTransform();
+      }
+    }, { passive: false });
+
+    treeViewport.addEventListener('touchend', () => {
+      isDraggingTree = false;
+      initialPinchDist = null;
+    });
+  }
+
+  // v2.0.0: Poster Aspect Ratio & Web Share API
+  document.getElementById('posterAspectSelect').addEventListener('change', (e) => {
+    window.VibeState.data.posterAspect = e.target.value;
+    window.VibeState.save();
+    refreshPosterCanvas();
+  });
+
+  document.getElementById('btnSharePoster').addEventListener('click', async () => {
+    refreshPosterCanvas();
+    const canvas = document.getElementById('posterCanvas');
+    if (navigator.share && canvas.toBlob) {
+      canvas.toBlob(async (blob) => {
+        try {
+          const file = new File([blob], 'VibeBracket_Poster_NetHustle.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ title: 'VibeBracket Arena', text: buildCaptionText(), files: [file] });
+            return;
+          }
+        } catch (err) {
+          // Fallback to caption copy
+        }
+        copyTextSafe(buildCaptionText(), 'Viral caption copied for sharing!');
+      }, 'image/png');
+    } else {
+      copyTextSafe(buildCaptionText(), 'Viral caption copied for sharing!');
+    }
+  });
+
   // Boot
   window.VibeState.load();
-  document.getElementById('brandVersionLabel').textContent = 'by Hustle · v' + window.VibeVersion.VERSION;
+  if (document.getElementById('posterAspectSelect')) document.getElementById('posterAspectSelect').value = window.VibeState.data.posterAspect || '9:16';
+  document.getElementById('brandVersionLabel').textContent = 'by NetHustle · v' + window.VibeVersion.VERSION;
+  document.getElementById('btnToggleSfx').textContent = window.VibeAudio.isEnabled() ? 'SFX: ON' : 'SFX: OFF';
   document.getElementById('posterThemeSelect').value = window.VibeState.data.posterTheme || 'cyber';
+  document.getElementById('posterQuoteInput').value = window.VibeState.data.userQuote || '';
   document.getElementById('posterHandleInput').value = window.VibeState.data.userHandle || '';
   renderAiPacks();
   renderAll();

@@ -1,10 +1,12 @@
-// Version: 1.1.0 | Last Modified: 2026-11-13 07:46 HKT
+// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
 /**
  * File: js/logger.js
  * Description: Deterministic in-app diagnostic ring-buffer logger and Web Audio SFX synthesizer.
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial AppLogger implementation.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Extracted to js/logger.js and added Web Audio SFX feedback.
+ *   - v2.0.0 (2026-11-13 17:55 HKT): Updated version header for Track A release.
+ *   - v2.1.0 (2026-11-13 19:29 HKT): Added clash impact sound effect (clash()) and muted-by-default option per PRD Feature 2.
  */
 window.AppLogger = (() => {
   const entries = [];
@@ -28,7 +30,7 @@ window.VibeAudio = (() => {
   let ctx = null;
   let enabled = true;
 
-  /** Plays a crisp synthesized tone on user tap or champion crown without external audio files. */
+  /** Plays a crisp synthesized tone on user tap, clash, or champion crown without external audio files. */
   function playTone(freq, durationSec, type = 'sine') {
     if (!enabled) return;
     try {
@@ -55,6 +57,10 @@ window.VibeAudio = (() => {
     isEnabled: () => enabled,
     toggle: () => { enabled = !enabled; return enabled; },
     tap: () => playTone(520, 0.09, 'triangle'),
+    clash: () => {
+      playTone(220, 0.08, 'sawtooth');
+      setTimeout(() => playTone(440, 0.11, 'triangle'), 45);
+    },
     win: () => {
       playTone(523.25, 0.14, 'triangle');
       setTimeout(() => playTone(659.25, 0.16, 'triangle'), 90);
