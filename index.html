@@ -1,4 +1,4 @@
-<!-- Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT -->
+<!-- Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT -->
 <!--
   File: index.html
   Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
@@ -8,6 +8,7 @@
     - v1.2.0 (2026-11-13 08:15 HKT): Added procedural SVG/photo visual contender banners, particle confetti FX overlay, zero-key instant AI topic synthesis, and custom winner quote input on posters.
     - v2.0.0 (2026-11-13 17:55 HKT): Track A build with custom contender photos, Versus Clash transitions, Pan/Zoom Bracket Tree, Spice Meter, and 9:16 & 1:1 viral posters.
     - v2.1.0 (2026-11-13 19:29 HKT): Fixed nested <button> markup (contender-card-wrap), added drag-and-drop contender photo support, 4/8/16/32-seed builder options, mobile pinch-to-zoom & touch pan, and compiled standalone HTML bundle.
+    - v2.2.0 (2026-11-14 10:17 HKT): Integrated js/photoStore.js (IndexedDB vault, POD2-201) and js/packSanitizer.js (closing CAR-20261114-01 & CAR-20261114-02, POD2-205), added Live Streamer HUD & keyboard shortcuts (POD2-202), JSON/CSV Pack Import & Export (POD2-203), and 4K Pro Poster Export (POD2-204).
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -29,7 +30,7 @@
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.1.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.2.0</span>
         </div>
       </div>
 
@@ -42,6 +43,7 @@
       </nav>
 
       <div class="topbar-actions">
+        <button type="button" class="btn btn-sm" id="btnToggleStreamer" title="Toggle Live Streamer HUD &amp; Hotkeys">Streamer: OFF</button>
         <button type="button" class="btn btn-sm" id="btnToggleSfx" title="Toggle sound effects">SFX: ON</button>
         <button type="button" class="btn btn-sm" id="btnOpenLogs">Logs</button>
         <button type="button" class="btn btn-primary btn-sm" id="btnOpenPro">Pro</button>
@@ -57,6 +59,16 @@
         <div class="action-row">
           <button type="button" class="btn btn-sm" id="btnUndoVote" disabled>Undo</button>
           <button type="button" class="btn btn-sm" id="btnResetBracket">Restart</button>
+        </div>
+      </div>
+
+      <div class="streamer-hud-bar" id="streamerHudBar" role="status" aria-live="polite">
+        <div><strong>🔴 Live Streamer &amp; Audience Poll HUD</strong></div>
+        <div class="streamer-keys">
+          <span><kbd class="kbd-badge">1</kbd>Vote Left</span>
+          <span><kbd class="kbd-badge">2</kbd>Vote Right</span>
+          <span><kbd class="kbd-badge">Space</kbd>Replay Clash</span>
+          <span><kbd class="kbd-badge">Z</kbd>Undo Vote</span>
         </div>
       </div>
 
@@ -126,7 +138,7 @@
             </form>
             <div class="hot-take-list" id="hotTakeList"></div>
           </div>
-          <p class="privacy-note">Your photos stay on your device. We do not store or transmit your images to any server.</p>
+          <p class="privacy-note">Your photos stay on your device (IndexedDB Vault). We do not store or transmit your images to any server.</p>
         </div>
 
         <div id="championStage" style="display:none;">
@@ -226,9 +238,9 @@
         </div>
 
         <div class="card glass-card">
-          <div class="badge-pill">Custom Builder</div>
-          <h2 class="section-heading">Manual Bracket &amp; Link Share</h2>
-          <p class="section-sub" style="margin-bottom:0.85rem;">Paste your own 4-, 8-, 16-, or 32-contender list and share via URL hash.</p>
+          <div class="badge-pill">Custom Builder &amp; Pack Studio</div>
+          <h2 class="section-heading">Manual Bracket, Link &amp; Pack I/O</h2>
+          <p class="section-sub" style="margin-bottom:0.85rem;">Paste your own 4-, 8-, 16-, or 32-contender list, share via UTF-8 URL hash, or import/export JSON &amp; CSV packs.</p>
 
           <div class="notice-banner">
             <strong>Community Safety Policy:</strong> Brackets are strictly for public topics, media, food, tech, and ideas—never private individuals or harassment.
@@ -260,6 +272,16 @@
               <button type="button" class="btn" id="btnExportBracketLink">Copy Share Link</button>
             </div>
           </form>
+
+          <div class="pack-io-bar">
+            <span class="pool-heading">Tournament Pack Portability (JSON / CSV):</span>
+            <div class="btn-cluster">
+              <button type="button" class="btn btn-sm" id="btnExportJsonPack">Export JSON Pack</button>
+              <button type="button" class="btn btn-sm" id="btnExportCsvPack">Export CSV Pack</button>
+              <button type="button" class="btn btn-sm" id="btnImportPackTrigger">Import JSON/CSV Pack</button>
+              <input type="file" id="importPackFileInput" accept=".json,.csv,application/json,text/csv" hidden />
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -286,9 +308,9 @@
             <div class="form-group">
               <label class="form-label" for="posterAspectSelect">2. Poster Format</label>
               <select class="select" id="posterAspectSelect">
-                <option value="9:16">9:16 Vertical Story (1080×1920)</option>
-                <option value="1:1">1:1 Square Feed (1080×1080)</option>
-                <option value="4:5">4:5 Classic Portrait (1080×1350)</option>
+                <option value="9:16">9:16 Vertical Story (1080×1920 / 4K 2160×3840)</option>
+                <option value="1:1">1:1 Square Feed (1080×1080 / 4K 2160×2160)</option>
+                <option value="4:5">4:5 Classic Portrait (1080×1350 / 4K 2160×2700)</option>
               </select>
             </div>
 
@@ -314,6 +336,7 @@
 
             <div class="btn-cluster-col">
               <button type="button" class="btn btn-primary" id="btnDownloadPoster">Download 1080×1350 PNG Poster</button>
+              <button type="button" class="btn btn-primary" id="btnDownloadPoster4k">Download 4K Pro Poster (2160p)</button>
               <button type="button" class="btn" id="btnSharePoster">Share Poster</button>
               <button type="button" class="btn" id="btnCopyShareText">Copy Viral Caption</button>
               <button type="button" class="btn" id="btnClearPhoto">Remove Photo</button>
@@ -346,6 +369,8 @@
 
   <script src="js/version.js"></script>
   <script src="js/logger.js"></script>
+  <script src="js/photoStore.js"></script>
+  <script src="js/packSanitizer.js"></script>
   <script src="js/visuals.js"></script>
   <script src="js/state.js"></script>
   <script src="js/genai.js"></script>
