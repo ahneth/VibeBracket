@@ -1,10 +1,11 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/clash.js
  * Description: Client-side contender photo crop/compression (<150KB) and animated Versus Clash transition controller.
  * Change Log:
  *   - v2.0.0 (2026-11-13 17:55 HKT): Initial module for Track A custom contender photo processing and 60fps Versus Clash transitions.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Added drag-and-drop file binding helper (bindDropZone) and synced canvas spark bursts + audio clash SFX on transition.
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Added compressAndStoreContenderPhoto(itemId, file) wiring NetHustlePhotoStore IndexedDB vault directly into the photo pipeline (POD2-201).
  */
 window.VibeClash = (() => {
   /**
@@ -41,6 +42,23 @@ window.VibeClash = (() => {
       };
       reader.readAsDataURL(file);
     });
+  }
+
+  /**
+   * Compresses a contender photo and stores it directly into NetHustlePhotoStore IndexedDB vault + VibeState (POD2-201).
+   * @param {string} itemId
+   * @param {File} file
+   * @returns {Promise<string>}
+   */
+  async function compressAndStoreContenderPhoto(itemId, file) {
+    const dataUrl = await compressPhoto(file);
+    if (window.NetHustlePhotoStore) {
+      await window.NetHustlePhotoStore.putPhoto(itemId, dataUrl);
+    }
+    if (window.VibeState && window.VibeState.setContenderPhoto) {
+      window.VibeState.setContenderPhoto(itemId, dataUrl);
+    }
+    return dataUrl;
   }
 
   /**
@@ -82,5 +100,5 @@ window.VibeClash = (() => {
     });
   }
 
-  return { compressPhoto, triggerClash, bindDropZone };
+  return { compressPhoto, compressAndStoreContenderPhoto, triggerClash, bindDropZone };
 })();

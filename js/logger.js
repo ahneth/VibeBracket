@@ -1,4 +1,4 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/logger.js
  * Description: Deterministic in-app diagnostic ring-buffer logger and Web Audio SFX synthesizer.
@@ -6,7 +6,8 @@
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial AppLogger implementation.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Extracted to js/logger.js and added Web Audio SFX feedback.
  *   - v2.0.0 (2026-11-13 17:55 HKT): Updated version header for Track A release.
- *   - v2.1.0 (2026-11-13 19:29 HKT): Added clash impact sound effect (clash()) and muted-by-default option per PRD Feature 2.
+ *   - v2.1.0 (2026-11-13 19:29 HKT): Added clash impact sound effect (clash()).
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Maintained ring-buffer cap (120 entries) and Web Audio SFX for v2.2.0 Streamer HUD & 4K export.
  */
 window.AppLogger = (() => {
   const entries = [];

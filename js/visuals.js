@@ -1,4 +1,4 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/visuals.js
  * Description: Procedural SVG contender artwork generator and HTML5 Canvas particle/confetti & clash sparks engine.
@@ -6,6 +6,7 @@
  *   - v1.2.0 (2026-11-13 08:15 HKT): Created module to render rich visual artwork banners on contender cards and celebratory particle bursts.
  *   - v2.0.0 (2026-11-13 17:55 HKT): Track A release compatibility.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Added triggerClashSparks() canvas energy burst for 60fps Versus Clash transitions.
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Closed OBS-P3-01 / CAR-20261114-02 by stripping [<>&"'] XML control characters on item.emoji before SVG interpolation.
  */
 window.VibeVisuals = (() => {
   const PALETTES = [
@@ -34,12 +35,13 @@ window.VibeVisuals = (() => {
 
   /**
    * Builds a rich SVG data URI banner for any contender (or returns custom uploaded image DataURL if present).
+   * Enforces [<>&"'] stripping on tag, initials, and emoji (closing OBS-P3-01).
    */
   function getContenderBannerUrl(item, seedNumber) {
     if (item && item.imageUrl) return item.imageUrl;
     const h = hashStr((item && item.name) || 'contender');
     const [c1, c2, c3] = PALETTES[h % PALETTES.length];
-    const emoji = (item && item.emoji) || '⚡';
+    const emoji = String((item && item.emoji) || '⚡').replace(/[<>&"']/g, '').slice(0, 4) || '⚡';
     const tag = String((item && item.tag) || 'SEED #' + seedNumber).toUpperCase().replace(/[<>&"']/g, '');
     const initials = String((item && item.name) || 'VB')
       .split(/\s+/)

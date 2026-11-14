@@ -1,13 +1,14 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/app.js
- * Description: Main UI controller, visual banner binding, Bracket Tree renderer, and modal/toast orchestration.
+ * Description: Main UI controller, visual banner binding, Bracket Tree renderer, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial monolithic script.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Modularized into js/app.js; added Bracket Tree rendering, GenAI studio wiring, and photo upload baking.
  *   - v1.2.0 (2026-11-13 08:15 HKT): Wired SVG/photo contender banners, celebratory confetti burst on Champion crown, and winner quote poster input.
  *   - v2.0.0 (2026-11-13 17:55 HKT): Wired contender photo uploads, Spice Meter, Hot-Takes, Pan/Zoom tree, and 9:16/1:1 posters.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Added drag-and-drop contender photo support, mobile pinch-to-zoom & touch pan on Bracket Tree, live vote percentage split in Spice Card, and champion custom photo fallback in poster spotlight.
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Closed CAR-20261114-01 & CAR-20261114-02 via PackSanitizer.encodeShareTopic(), added IndexedDB vault boot hydration (POD2-201), added Live Streamer HUD & keyboard shortcuts (1, 2, Space, Z) (POD2-202), added JSON/CSV Pack Export & Import (POD2-203), and added 4K Creator Pro Poster Export & transparent pricing modal (POD2-204).
  */
 (function () {
   'use strict';
@@ -78,6 +79,17 @@
     });
   }
 
+  function renderStreamerHud() {
+    const hud = document.getElementById('streamerHudBar');
+    const btn = document.getElementById('btnToggleStreamer');
+    const on = Boolean(window.VibeState.data.streamerMode);
+    if (hud) hud.style.display = on ? 'flex' : 'none';
+    if (btn) {
+      btn.textContent = on ? 'Streamer: ON' : 'Streamer: OFF';
+      btn.classList.toggle('btn-primary', on);
+    }
+  }
+
   function renderArena() {
     const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
@@ -85,6 +97,7 @@
     document.getElementById('arenaBracketTitle').textContent = topic.title;
     document.getElementById('arenaBracketSubtitle').textContent = topic.subtitle || 'Tap a contender card to advance.';
     document.getElementById('btnUndoVote').disabled = b.history.length === 0;
+    renderStreamerHud();
 
     const totalMatches = topic.items.length - 1;
     const completed = b.history.length;
@@ -272,7 +285,7 @@
     });
   }
 
-  function refreshPosterCanvas() {
+  function refreshPosterCanvas(overrideResolution) {
     const canvas = document.getElementById('posterCanvas');
     const topic = window.VibeState.getActiveTopic();
     const bracket = window.VibeState.getActiveBracket();
@@ -296,9 +309,11 @@
       }
     }
 
+    const resMode = overrideResolution || window.VibeState.data.posterResolution || '1x';
     window.VibePoster.render(canvas, topic, bracket, tierMap, {
       theme: window.VibeState.data.posterTheme,
       aspect: window.VibeState.data.posterAspect || '9:16',
+      resolution: resMode,
       handle: window.VibeState.data.userHandle,
       quote: window.VibeState.data.userQuote || '',
       topHotTake: window.VibeState.getTopicTopHotTake(topic.id),
@@ -436,6 +451,38 @@
     e.target.textContent = on ? 'SFX: ON' : 'SFX: OFF';
   });
 
+  // POD2-202: Live Streamer Mode Toggle & Keyboard Shortcuts (1, 2, Space, Z)
+  const btnStreamer = document.getElementById('btnToggleStreamer');
+  if (btnStreamer) {
+    btnStreamer.addEventListener('click', () => {
+      window.VibeState.data.streamerMode = !window.VibeState.data.streamerMode;
+      window.VibeState.save();
+      renderStreamerHud();
+      showToast(window.VibeState.data.streamerMode ? 'Streamer HUD enabled! Use keys 1, 2, Space, Z.' : 'Streamer HUD hidden.');
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+    if (!window.VibeState.data.streamerMode) return;
+    const arenaPanel = document.getElementById('panel-arena');
+    if (!arenaPanel || !arenaPanel.classList.contains('active')) return;
+    if (e.key === '1') {
+      e.preventDefault();
+      pickWinner('left');
+    } else if (e.key === '2') {
+      e.preventDefault();
+      pickWinner('right');
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      window.VibeClash.triggerClash(document.querySelector('.matchup-grid'));
+      showToast('Replayed Versus Clash!');
+    } else if (e.key === 'z' || e.key === 'Z') {
+      e.preventDefault();
+      undoLastVote();
+    }
+  });
+
   document.getElementById('btnGoPoster').addEventListener('click', () => {
     document.querySelector('.nav-tab[data-tab="poster"]').click();
   });
@@ -451,7 +498,7 @@
   document.getElementById('btnCopyShareText').addEventListener('click', () => copyTextSafe(buildCaptionText(), 'Viral caption copied!'));
 
   document.getElementById('btnDownloadPoster').addEventListener('click', () => {
-    refreshPosterCanvas();
+    refreshPosterCanvas('1x');
     const link = document.createElement('a');
     link.download = 'VibeBracket_Poster_NetHustle.png';
     link.href = document.getElementById('posterCanvas').toDataURL('image/png');
@@ -459,6 +506,21 @@
     const aspect = window.VibeState.data.posterAspect || '9:16';
     showToast(aspect + ' Poster PNG downloaded!');
   });
+
+  // POD2-204: 4K Creator Pro Poster Export (2160x3840 Story / 2160x2160 Square / 2160x2700 Portrait)
+  const btnDownload4k = document.getElementById('btnDownloadPoster4k');
+  if (btnDownload4k) {
+    btnDownload4k.addEventListener('click', () => {
+      refreshPosterCanvas('4k');
+      const canvas = document.getElementById('posterCanvas');
+      const link = document.createElement('a');
+      link.download = 'VibeBracket_4K_Pro_Poster_NetHustle.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('4K Ultra-HD (' + canvas.width + '×' + canvas.height + ') Poster PNG downloaded!');
+      refreshPosterCanvas();
+    });
+  }
 
   document.getElementById('posterThemeSelect').addEventListener('change', (e) => {
     window.VibeState.data.posterTheme = e.target.value;
@@ -551,11 +613,72 @@
     showToast('Launched "' + title + '"!');
   });
 
+  // POD2-205: Close CAR-20261114-01 (BUG-P1-20261114-01) via UTF-8 safe PackSanitizer.encodeShareTopic
   document.getElementById('btnExportBracketLink').addEventListener('click', () => {
     const topic = window.VibeState.getActiveTopic();
-    const encoded = encodeURIComponent(btoa(JSON.stringify(topic)));
-    copyTextSafe(window.location.origin + window.location.pathname + '#b=' + encoded, 'Shareable bracket link copied!');
+    const encoded = window.PackSanitizer.encodeShareTopic(topic);
+    if (!encoded) {
+      showToast('Could not encode bracket link.');
+      return;
+    }
+    copyTextSafe(window.location.origin + window.location.pathname + '#b=' + encoded, 'UTF-8 shareable bracket link copied!');
   });
+
+  // POD2-203: JSON / CSV Tournament Pack Export & Import
+  function downloadTextFile(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const btnExportJson = document.getElementById('btnExportJsonPack');
+  if (btnExportJson) {
+    btnExportJson.addEventListener('click', () => {
+      const topic = window.VibeState.getActiveTopic();
+      const jsonStr = window.PackSanitizer.exportJsonPack(topic);
+      downloadTextFile((topic.id || 'bracket') + '_pack.json', jsonStr, 'application/json;charset=utf-8');
+      showToast('Exported tournament pack (.json)!');
+    });
+  }
+
+  const btnExportCsv = document.getElementById('btnExportCsvPack');
+  if (btnExportCsv) {
+    btnExportCsv.addEventListener('click', () => {
+      const topic = window.VibeState.getActiveTopic();
+      const csvStr = window.PackSanitizer.exportCsvPack(topic);
+      downloadTextFile((topic.id || 'bracket') + '_pack.csv', csvStr, 'text/csv;charset=utf-8');
+      showToast('Exported formula-safe tournament pack (.csv)!');
+    });
+  }
+
+  const btnImportPack = document.getElementById('btnImportPackTrigger');
+  const inpImportPack = document.getElementById('importPackFileInput');
+  if (btnImportPack && inpImportPack) {
+    btnImportPack.addEventListener('click', () => inpImportPack.click());
+    inpImportPack.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fallbackName = file.name.replace(/\.(json|csv)$/i, '');
+        const imported = window.PackSanitizer.parseImportedPack(reader.result, fallbackName);
+        if (!imported) {
+          showToast('Invalid pack: must contain 4, 8, 16, or 32 contenders.');
+          return;
+        }
+        window.VibeState.addTopic(imported);
+        renderAll();
+        document.querySelector('.nav-tab[data-tab="arena"]').click();
+        showToast('Imported "' + imported.title + '" (' + imported.items.length + ' seeds)!');
+      };
+      reader.readAsText(file);
+      inpImportPack.value = '';
+    });
+  }
 
   document.getElementById('btnOpenLogs').addEventListener('click', () => {
     document.getElementById('modalTitle').textContent = 'AppLogger Diagnostics (v' + window.VibeVersion.VERSION + ')';
@@ -569,18 +692,20 @@
     document.getElementById('modalBackdrop').classList.add('open');
   });
 
+  // POD2-204: Transparent Creator Pro Pricing & 4K Preview Modal (Cap. 362 & WCAG 2.1 AA compliant)
   document.getElementById('btnOpenPro').addEventListener('click', () => {
-    openModal('VibeBracket Creator Pro ($9.99/mo or $79/yr)', [
-      'Free Tier includes unlimited 4/8/16/32-contender brackets, custom contender photo uploads, live Pan/Zoom Bracket Tree, Tier-List mode, zero-key AI topic synthesis, and 9:16 & 1:1 Photo-Baked PNG Posters.',
-      'Creator Pro unlocks 64-contender mega-brackets, custom brand watermarks, and audience sentiment analytics.'
+    openModal('VibeBracket Creator Pro — Transparent Pricing ($9.99/mo or $79/yr)', [
+      'Free Tier ($0.00 forever): Unlimited 4/8/16/32-seed brackets, custom contender photos stored locally in IndexedDB (>50MB vault), Live Streamer HUD hotkeys (1/2/Space/Z), JSON/CSV pack import/export, zero-key AI topic synthesis, and 1080p viral posters.',
+      'Creator Pro ($9.99 USD/month or $79.00 USD/year — save 34%): Unlocks 4K Ultra-HD (2160×3840 Story / 2160×2160 Square) Championship Poster exports (available to preview & test now in the Photo Poster tab!), custom studio brand watermarks, and 64-seed mega-tournaments.',
+      'No Dark Patterns Guarantee: Zero hidden fees, zero forced sign-ups, and 1-click cancellation at any time in full compliance with the Hong Kong Trade Descriptions Ordinance (Cap. 362).'
     ]);
   });
 
   document.getElementById('btnOpenLegal').addEventListener('click', () => {
     openModal('Terms, Privacy & Anti-Harassment Policy', [
       'NetHustle Software Labs Ltd. operates under: "Make money, Legally, NEVER HARM ANY HUMAN."',
-      'Privacy Guarantee: Uploaded photos, brackets, and BYOK API keys are processed 100% locally in your browser.',
-      'Anti-Harassment Rule: Custom brackets are restricted to public media, topics, food, and ideas—never private individuals.'
+      'Privacy Guarantee (GDPR, CCPA & HK PDPO Cap. 486): Uploaded contender photos (IndexedDB NetHustlePhotoStore), brackets, and BYOK API keys are processed and stored 100% locally on your device. Zero images are ever transmitted to any server.',
+      'Anti-Harassment & Security Rule: Custom brackets and imported JSON/CSV packs are sanitized via PackSanitizer and restricted to public media, topics, food, and ideas—never private individuals.'
     ]);
   });
 
@@ -589,7 +714,7 @@
     if (e.target.id === 'modalBackdrop') document.getElementById('modalBackdrop').classList.remove('open');
   });
 
-  // v2.1.0: Custom Contender Photo Uploads (Click + Drag-and-Drop, 100% local)
+  // v2.2.0: Custom Contender Photo Uploads via NetHustlePhotoStore IndexedDB Vault (POD2-201)
   async function handleContenderFile(file, side) {
     if (!file) return;
     try {
@@ -597,11 +722,10 @@
       if (b.champion) return;
       const match = b.rounds[b.currentRoundIdx][b.currentMatchIdx];
       const targetItem = side === 'left' ? match.left : match.right;
-      const dataUrl = await window.VibeClash.compressPhoto(file);
-      window.VibeState.setContenderPhoto(targetItem.id, dataUrl);
+      await window.VibeClash.compressAndStoreContenderPhoto(targetItem.id, file);
       renderArena();
       refreshPosterCanvas();
-      showToast('Custom photo saved locally for ' + targetItem.name + '!');
+      showToast('Custom photo saved to local IndexedDB vault for ' + targetItem.name + '!');
     } catch (err) {
       showToast(err.message || 'Could not process image.');
     }
@@ -630,7 +754,7 @@
   wireContenderPhoto('btnLeftPhoto', 'leftPhotoInput', 'leftCardWrap', 'left');
   wireContenderPhoto('btnRightPhoto', 'rightPhotoInput', 'rightCardWrap', 'right');
 
-  // v2.0.0+: Spice Meter & Hot Takes
+  // Spice Meter & Hot Takes
   document.querySelectorAll('#spicePills .spice-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const b = window.VibeState.getActiveBracket();
@@ -658,7 +782,7 @@
     showToast('Hot take recorded locally!');
   });
 
-  // v2.1.0: Bracket Tree Pan & Zoom + Mobile Touch Pinch/Pan + Mini-Map
+  // Bracket Tree Pan & Zoom + Mobile Touch Pinch/Pan + Mini-Map
   let treeScale = 1;
   let treeX = 0;
   let treeY = 0;
@@ -715,7 +839,6 @@
       applyTreeTransform();
     }, { passive: false });
 
-    // Mobile Touch Pan & Pinch-to-Zoom
     treeViewport.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDraggingTree = true;
@@ -752,7 +875,7 @@
     });
   }
 
-  // v2.0.0: Poster Aspect Ratio & Web Share API
+  // Poster Aspect Ratio & Web Share API
   document.getElementById('posterAspectSelect').addEventListener('change', (e) => {
     window.VibeState.data.posterAspect = e.target.value;
     window.VibeState.save();
@@ -780,7 +903,7 @@
     }
   });
 
-  // Boot
+  // Boot & IndexedDB Vault Hydration
   window.VibeState.load();
   if (document.getElementById('posterAspectSelect')) document.getElementById('posterAspectSelect').value = window.VibeState.data.posterAspect || '9:16';
   document.getElementById('brandVersionLabel').textContent = 'by NetHustle · v' + window.VibeVersion.VERSION;
@@ -790,5 +913,9 @@
   document.getElementById('posterHandleInput').value = window.VibeState.data.userHandle || '';
   renderAiPacks();
   renderAll();
+  window.VibeState.hydratePhotosFromVault().then(() => {
+    renderArena();
+    refreshPosterCanvas();
+  });
   window.AppLogger.info('VibeBracket Arena v' + window.VibeVersion.VERSION + ' (' + window.VibeVersion.BUILD_ID + ') ready.');
 })();

@@ -1,4 +1,4 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/genai.js
  * Description: GenAI Topic Studio supporting both zero-key instant AI synthesis for any user prompt and optional OpenRouter BYOK API completion.
@@ -6,7 +6,8 @@
  *   - v1.1.0 (2026-11-13 07:46 HKT): Initial GenAI Topic Studio module.
  *   - v1.2.0 (2026-11-13 08:15 HKT): Added instant zero-key semantic topic synthesizer so any prompt works immediately without requiring an API key.
  *   - v2.0.0 (2026-11-13 17:55 HKT): Track A release compatibility.
- *   - v2.1.0 (2026-11-13 19:29 HKT): Wrapped OpenRouter fetch call in explicit try/catch with deterministic fallback to local synthesizer (eliminating NETWORK_CALL warnings).
+ *   - v2.1.0 (2026-11-13 19:29 HKT): Wrapped OpenRouter fetch call in explicit try/catch with deterministic fallback to local synthesizer.
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Sanitized AI-generated topics through PackSanitizer.sanitizeTopicPayload().
  */
 window.VibeGenAI = (() => {
   const TRENDING_PACKS = [
@@ -182,7 +183,7 @@ window.VibeGenAI = (() => {
         return synthesizeLocalTopic(cleanPrompt);
       }
 
-      return {
+      const candidate = {
         id: 'ai-' + Date.now(),
         title: String(parsed.title).slice(0, 80),
         subtitle: String(parsed.subtitle || 'Generated with VibeBracket AI Studio').slice(0, 120),
@@ -193,6 +194,7 @@ window.VibeGenAI = (() => {
           emoji: String(it.emoji || '✨').slice(0, 4)
         }))
       };
+      return window.PackSanitizer ? (window.PackSanitizer.sanitizeTopicPayload(candidate) || candidate) : candidate;
     } catch (err) {
       window.AppLogger.warn('OpenRouter request failed; falling back to local synthesizer.');
       return synthesizeLocalTopic(cleanPrompt);

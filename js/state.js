@@ -1,12 +1,13 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/state.js
- * Description: Starter templates, localStorage persistence, URL-hash sharing, custom contender photos, hot-takes, and bracket progression engine.
+ * Description: Starter templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, and bracket progression engine.
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial bracket and tier-list state engine.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Extracted to js/state.js; added support for AI-generated topics and user photo state.
  *   - v2.0.0 (2026-11-13 17:55 HKT): Added customPhotos map, hotTakes & Spice Meter storage, posterAspect setting, and 32-seed support.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Synced vibetrack_custom_images storage alias per PRD Feature 1 and added match vote tally tracking for Spice Meter cards.
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Wired PackSanitizer.decodeShareTopic() & sanitizeTopicPayload() (closing CAR-20261114-01 & CAR-20261114-02), wired NetHustlePhotoStore IndexedDB vault (POD2-201), and added streamerMode & posterResolution state fields (POD2-202 & POD2-204).
  */
 window.VibeState = (() => {
   const PHOTO_STORAGE_KEY = 'vibetrack_custom_images';
@@ -68,11 +69,13 @@ window.VibeState = (() => {
     hotTakes: {},
     posterTheme: 'cyber',
     posterAspect: '9:16',
+    posterResolution: '1x',
+    streamerMode: false,
     userHandle: '',
     userQuote: ''
   };
 
-  /** Loads persisted state from localStorage and URL hash (#b=... or #bracket=...) safely. */
+  /** Loads persisted state from localStorage and UTF-8 safe URL hash (#b=... or #bracket=...) via PackSanitizer. */
   function load() {
     try {
       const raw = localStorage.getItem(window.VibeVersion.STORAGE_KEY);
@@ -92,21 +95,33 @@ window.VibeState = (() => {
     }
 
     try {
-      const h = window.location.hash || '';
-      const prefix = h.startsWith('#bracket=') ? '#bracket=' : (h.startsWith('#b=') ? '#b=' : null);
-      if (prefix) {
-        const shared = JSON.parse(atob(decodeURIComponent(h.slice(prefix.length))));
-        if (shared && shared.title && Array.isArray(shared.items) && shared.items.length >= 4) {
+      if (window.location.hash && window.PackSanitizer) {
+        const shared = window.PackSanitizer.decodeShareTopic(window.location.hash);
+        if (shared) {
           if (!state.customTopics.find((t) => t.id === shared.id)) {
             state.customTopics.push(shared);
           }
           state.activeTopicId = shared.id;
-          window.AppLogger.info('Loaded shared bracket: ' + shared.title);
+          window.AppLogger.info('Loaded verified shared bracket: ' + shared.title);
         }
       }
     } catch (e) {
       window.AppLogger.warn('Could not parse shared bracket hash.');
     }
+  }
+
+  /** Asynchronously hydrates custom contender photos from NetHustlePhotoStore IndexedDB vault (POD2-201). */
+  async function hydratePhotosFromVault() {
+    if (!window.NetHustlePhotoStore) return state.customPhotos;
+    try {
+      const vaultPhotos = await window.NetHustlePhotoStore.hydrateAll();
+      if (vaultPhotos && typeof vaultPhotos === 'object') {
+        state.customPhotos = Object.assign({}, state.customPhotos, vaultPhotos);
+      }
+    } catch (e) {
+      window.AppLogger.warn('IndexedDB vault hydration skipped.');
+    }
+    return state.customPhotos;
   }
 
   /** Persists state cleanly to localStorage. */
@@ -115,7 +130,7 @@ window.VibeState = (() => {
       localStorage.setItem(window.VibeVersion.STORAGE_KEY, JSON.stringify(state));
       localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(state.customPhotos));
     } catch (e) {
-      window.AppLogger.warn('Storage quota reached; keeping latest state in memory.');
+      window.AppLogger.warn('Storage quota reached; keeping latest state in memory/IndexedDB.');
     }
   }
 
@@ -146,19 +161,27 @@ window.VibeState = (() => {
   }
 
   function addTopic(topicObj) {
-    state.customTopics.push(topicObj);
-    state.activeTopicId = topicObj.id;
-    initBracket(topicObj);
+    const sanitized = window.PackSanitizer ? (window.PackSanitizer.sanitizeTopicPayload(topicObj) || topicObj) : topicObj;
+    state.customTopics.push(sanitized);
+    state.activeTopicId = sanitized.id;
+    initBracket(sanitized);
     save();
   }
 
   function setContenderPhoto(itemId, dataUrl) {
     if (!dataUrl) delete state.customPhotos[itemId];
     else state.customPhotos[itemId] = dataUrl;
+    if (window.NetHustlePhotoStore) {
+      window.NetHustlePhotoStore.putPhoto(itemId, dataUrl);
+    }
     save();
   }
 
   function getContenderPhoto(itemId) {
+    if (window.NetHustlePhotoStore) {
+      const fromVault = window.NetHustlePhotoStore.getPhotoSync(itemId);
+      if (fromVault) return fromVault;
+    }
     return state.customPhotos[itemId] || null;
   }
 
@@ -212,6 +235,7 @@ window.VibeState = (() => {
   return {
     data: state,
     load,
+    hydratePhotosFromVault,
     save,
     getAllTopics,
     getActiveTopic,

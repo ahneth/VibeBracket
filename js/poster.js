@@ -1,13 +1,14 @@
-// Version: 2.1.0 | Last Modified: 2026-11-13 19:29 HKT
+// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
 /**
  * File: js/poster.js
- * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) HTML5 Canvas Viral Share Poster generator.
+ * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator.
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial dark poster renderer.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Added circular user photo spotlight baking and 3 visual themes.
  *   - v1.2.0 (2026-11-13 08:15 HKT): Added 4th Gold Championship theme, custom winner quote banner, and visual Final-4 mini bracket cards.
  *   - v2.0.0 (2026-11-13 17:55 HKT): Added 9:16 & 1:1 aspect ratios, NetHustle branding, contender graveyard, spice/hot-take badge, and QR share matrix.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Automatic fallback to Champion custom contender photo in poster spotlight when no separate poster selfie is uploaded.
+ *   - v2.2.0 (2026-11-14 10:17 HKT): Added 4K Ultra-HD export scaling (2x resolution: 2160x3840 Story, 2160x2160 Square, 2160x2700 Portrait) for POD2-204.
  */
 window.VibePoster = (() => {
   const THEMES = {
@@ -80,15 +81,18 @@ window.VibePoster = (() => {
     ctx.strokeRect(x - 6, y - 6, size + 12, size + 12);
   }
 
-  /** Renders the viral poster in the selected aspect ratio onto the target canvas element. */
+  /** Renders the viral poster in the selected aspect ratio and resolution scale (1x HD or 2x 4K) onto the target canvas element. */
   function render(canvas, topic, bracket, tierMap, options) {
     const spec = ASPECTS[options.aspect] || ASPECTS['9:16'];
-    canvas.width = spec.width;
-    canvas.height = spec.height;
+    const scaleFactor = options.resolution === '4k' ? 2 : 1;
     const W = spec.width;
     const H = spec.height;
+    canvas.width = W * scaleFactor;
+    canvas.height = H * scaleFactor;
 
     const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.scale(scaleFactor, scaleFactor);
     const theme = THEMES[options.theme] || THEMES.cyber;
 
     const grad = ctx.createLinearGradient(0, 0, W, H);
@@ -110,7 +114,10 @@ window.VibePoster = (() => {
 
     ctx.fillStyle = theme.accent;
     ctx.font = '800 25px Inter, sans-serif';
-    ctx.fillText('VIBEBRACKET ARENA · OFFICIAL CHAMPIONSHIP POSTER', 78, 102);
+    const headerBadge = scaleFactor === 2
+      ? 'VIBEBRACKET ARENA · 4K PRO CHAMPIONSHIP POSTER'
+      : 'VIBEBRACKET ARENA · OFFICIAL CHAMPIONSHIP POSTER';
+    ctx.fillText(headerBadge, 78, 102);
 
     ctx.fillStyle = '#f8fafc';
     ctx.font = '900 50px Inter, sans-serif';
@@ -195,7 +202,7 @@ window.VibePoster = (() => {
       ctx.fillText(String(c.val).slice(0, 24), bx + 24, by + (boxH - 36));
     });
 
-    // Extra Story Mode Spotlight for 9:16 (1080x1920)
+    // Extra Story Mode Spotlight for 9:16 (1080x1920 / 2160x3840)
     if (H >= 1900) {
       const storyY = gridTitleY + 28 + rowStep * 2 + 24;
       ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
@@ -242,6 +249,7 @@ window.VibePoster = (() => {
     ctx.fillText('Bake your photo into the winner & challenge friends in 15s', 116, footerY + 112);
 
     drawShareQrMatrix(ctx, topic.id + ':' + (bracket.champion ? bracket.champion.name : 'live'), W - 216, footerY + 20, 108, theme.accent);
+    ctx.restore();
   }
 
   return { render, ASPECTS };
