@@ -1,4 +1,4 @@
-/* Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT */
+/* Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT | Module: css/styles.css */
 /*
   File: css/styles.css
   Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
@@ -574,4 +574,64 @@ canvas#posterCanvas { max-width: 100%; height: auto; border-radius: var(--radius
   margin-top: 1rem;
   padding-top: 0.9rem;
   border-top: 1px solid var(--border-subtle);
+}
+
+
+/* v2.3.0: Drag-and-Drop Tier Chips & Dropzone Ergonomics (POD2-305) */
+.tier-row.tier-drop-active,
+.tier-pool.tier-drop-active {
+  outline: 2px dashed #34d399;
+  background: rgba(16, 185, 129, 0.14);
+}
+.tier-chip {
+  cursor: grab;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.tier-chip:hover,
+.tier-chip:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+  outline: 2px solid #38bdf8;
+}
+.tier-chip.dragging,
+.pool-row.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+.pool-row[draggable="true"] {
+  cursor: grab;
+}
+.seed-img-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+.consent-check-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-bottom: 0.75rem;
+}
+.consent-check-wrap input[type="checkbox"] {
+  margin-top: 0.2rem;
+  accent-color: #38bdf8;
 }
