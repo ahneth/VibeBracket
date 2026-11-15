@@ -1,7 +1,7 @@
-// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
+// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
 /**
  * File: js/app.js
- * Description: Main UI controller, visual banner binding, Bracket Tree renderer, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
+ * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial monolithic script.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Modularized into js/app.js; added Bracket Tree rendering, GenAI studio wiring, and photo upload baking.
@@ -9,6 +9,7 @@
  *   - v2.0.0 (2026-11-13 17:55 HKT): Wired contender photo uploads, Spice Meter, Hot-Takes, Pan/Zoom tree, and 9:16/1:1 posters.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Added drag-and-drop contender photo support, mobile pinch-to-zoom & touch pan on Bracket Tree, live vote percentage split in Spice Card, and champion custom photo fallback in poster spotlight.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Closed CAR-20261114-01 & CAR-20261114-02 via PackSanitizer.encodeShareTopic(), added IndexedDB vault boot hydration (POD2-201), added Live Streamer HUD & keyboard shortcuts (1, 2, Space, Z) (POD2-202), added JSON/CSV Pack Export & Import (POD2-203), and added 4K Creator Pro Poster Export & transparent pricing modal (POD2-204).
+ *   - v2.3.0 (2026-11-14 22:35 HKT): Wired 32-Seed Arena defaults (POD2-301), 3-Tier Authentic 32-Seed AI/Wikimedia generation (POD2-302), real-time CORS-safe seed image resolution with onerror SVG fallback (POD2-303), GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion with HK PDPO/GDPR consent gate (POD2-304), automatic S/A/B/C/D Tier List population on Champion crown + HTML5 Drag-and-Drop & WCAG keyboard reordering (POD2-305), and locked $9.99/mo & $79.00/yr Creator Pro pricing disclosures (POD2-306).
  */
 (function () {
   'use strict';
@@ -16,6 +17,8 @@
   let cachedPhotoImg = null;
   let cachedChampionImg = null;
   let cachedChampionPhotoUrl = null;
+  let activeFusionMeta = null;
+  let draggedTierItemId = null;
 
   /** Creates a DOM element safely using textContent (OWASP A05 XSS prevention). */
   function createSafeEl(tag, text, className) {
@@ -27,6 +30,7 @@
 
   function showToast(msg) {
     const t = document.getElementById('toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(t._timer);
@@ -64,8 +68,17 @@
     return 'Round of ' + (matchCount * 2);
   }
 
+  function updateSeedImageStatusText() {
+    const statusEl = document.getElementById('seedImgStatusText');
+    if (!statusEl) return;
+    const topic = window.VibeState.getActiveTopic();
+    const withPhotoCount = topic.items.filter((it) => Boolean(window.VibeState.getContenderPhoto(it.id) || it.imageUrl)).length;
+    statusEl.textContent = '🖼️ Seed Visuals: ' + withPhotoCount + ' / ' + topic.items.length + ' real photos cached (' + topic.items.length + '-Seed Arena)';
+  }
+
   function renderTopicPills() {
     const container = document.getElementById('topicPills');
+    if (!container) return;
     container.textContent = '';
     window.VibeState.getAllTopics().forEach((topic) => {
       const btn = createSafeEl('button', topic.title, 'topic-pill' + (topic.id === window.VibeState.data.activeTopicId ? ' active' : ''));
@@ -90,14 +103,35 @@
     }
   }
 
+  /** Binds a contender banner <img> with crossOrigin='anonymous' and automatic procedural SVG fallback (POD2-303). */
+  function bindBannerImageWithFallback(imgEl, item, seedNumber) {
+    if (!imgEl || !item) return;
+    const customOrVault = window.VibeState.getContenderPhoto(item.id);
+    const svgFallback = window.VibeVisuals.getProceduralSvgBannerUrl(item, seedNumber);
+    const targetSrc = customOrVault || (item.imageUrl && window.VibeVisuals.isSafeImageUrl(item.imageUrl) ? item.imageUrl : svgFallback);
+
+    if (targetSrc.startsWith('https://')) {
+      imgEl.crossOrigin = 'anonymous';
+    } else {
+      imgEl.removeAttribute('crossorigin');
+    }
+    imgEl.onerror = () => {
+      imgEl.onerror = null;
+      imgEl.removeAttribute('crossorigin');
+      imgEl.src = svgFallback;
+    };
+    imgEl.src = targetSrc;
+  }
+
   function renderArena() {
     const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
 
     document.getElementById('arenaBracketTitle').textContent = topic.title;
-    document.getElementById('arenaBracketSubtitle').textContent = topic.subtitle || 'Tap a contender card to advance.';
+    document.getElementById('arenaBracketSubtitle').textContent = topic.subtitle || 'Tap a contender card to advance through all 31 matches.';
     document.getElementById('btnUndoVote').disabled = b.history.length === 0;
     renderStreamerHud();
+    updateSeedImageStatusText();
 
     const totalMatches = topic.items.length - 1;
     const completed = b.history.length;
@@ -112,14 +146,14 @@
       document.getElementById('matchupStage').style.display = 'none';
       document.getElementById('championStage').style.display = 'block';
       document.getElementById('championName').textContent = (b.champion.emoji || '👑') + ' ' + b.champion.name;
-      document.getElementById('championSub').textContent = 'Crowned Grand Champion of "' + topic.title + '"';
+      document.getElementById('championSub').textContent = 'Crowned Grand Champion of "' + topic.title + '" · Tier List Auto-Populated (S/A/B/C/D)!';
 
       const podium = document.getElementById('podiumGrid');
       podium.textContent = '';
       [
-        { label: '1st Place (Champion)', val: b.champion.name },
-        { label: '2nd Place (Runner-Up)', val: b.runnerUp ? b.runnerUp.name : '—' },
-        { label: 'Semifinalists', val: b.semifinalists.length ? b.semifinalists.map((s) => s.name).join(' · ') : '—' }
+        { label: '1st Place (Champion · S-Tier)', val: b.champion.name },
+        { label: '2nd Place (Runner-Up · S-Tier)', val: b.runnerUp ? b.runnerUp.name : '—' },
+        { label: 'Semifinalists (A-Tier)', val: b.semifinalists.length ? b.semifinalists.map((s) => s.name).join(' · ') : '—' }
       ].forEach((c) => {
         const card = createSafeEl('div', null, 'stat-card');
         card.appendChild(createSafeEl('div', c.label, 'stat-label'));
@@ -137,18 +171,32 @@
     document.getElementById('roundBadge').textContent = getRoundName(round.length);
     document.getElementById('matchCounter').textContent = 'Match ' + (completed + 1) + ' of ' + totalMatches;
 
-    const leftCustom = window.VibeState.getContenderPhoto(match.left.id);
-    const rightCustom = window.VibeState.getContenderPhoto(match.right.id);
-
     document.getElementById('leftEmoji').textContent = match.left.emoji || '⚡';
-    document.getElementById('leftBannerImg').src = leftCustom || window.VibeVisuals.getContenderBannerUrl(match.left, b.currentMatchIdx * 2 + 1);
+    bindBannerImageWithFallback(document.getElementById('leftBannerImg'), match.left, b.currentMatchIdx * 2 + 1);
     document.getElementById('leftName').textContent = match.left.name;
     document.getElementById('leftTag').textContent = match.left.tag || 'Contender';
 
     document.getElementById('rightEmoji').textContent = match.right.emoji || '🔥';
-    document.getElementById('rightBannerImg').src = rightCustom || window.VibeVisuals.getContenderBannerUrl(match.right, b.currentMatchIdx * 2 + 2);
+    bindBannerImageWithFallback(document.getElementById('rightBannerImg'), match.right, b.currentMatchIdx * 2 + 2);
     document.getElementById('rightName').textContent = match.right.name;
     document.getElementById('rightTag').textContent = match.right.tag || 'Contender';
+
+    // Lazily fetch real-time images for the active matchup if not yet resolved (POD2-303)
+    [match.left, match.right].forEach((contender) => {
+      if (!window.VibeState.getContenderPhoto(contender.id) && !contender.imageUrl && window.VibeVisuals.fetchRealtimeSeedImage) {
+        window.VibeVisuals.fetchRealtimeSeedImage(contender, topic.title).then((resolvedUrl) => {
+          if (resolvedUrl) {
+            updateSeedImageStatusText();
+            const curB = window.VibeState.getActiveBracket();
+            if (!curB.champion) {
+              const curMatch = curB.rounds[curB.currentRoundIdx][curB.currentMatchIdx];
+              if (curMatch.left.id === contender.id) bindBannerImageWithFallback(document.getElementById('leftBannerImg'), curMatch.left, 1);
+              if (curMatch.right.id === contender.id) bindBannerImageWithFallback(document.getElementById('rightBannerImg'), curMatch.right, 2);
+            }
+          }
+        }).catch(() => {});
+      }
+    });
 
     window.VibeClash.triggerClash(document.querySelector('.matchup-grid'));
     renderSpiceAndHotTakes(topic.id, b.currentRoundIdx, b.currentMatchIdx, match);
@@ -218,6 +266,11 @@
     }
   }
 
+  /**
+   * POD2-305 (FD-P0-20261114-05): Renders the S / A / B / C / D Tier List with
+   * interactive HTML5 Drag-and-Drop (draggable="true", dragstart, dragover, drop)
+   * AND WCAG 2.1 Level AA keyboard/button controls.
+   */
   function renderTierList() {
     const topic = window.VibeState.getActiveTopic();
     document.getElementById('tierTitle').textContent = topic.title + ' — Tier List';
@@ -226,18 +279,86 @@
 
     const rowsEl = document.getElementById('tierRows');
     rowsEl.textContent = '';
-    tierDefs.forEach((t) => {
+
+    tierDefs.forEach((t, tIdx) => {
       const row = createSafeEl('div', null, 'tier-row');
+      row.dataset.tier = t;
       row.appendChild(createSafeEl('div', t, 'tier-label tier-' + t));
       const itemsWrap = createSafeEl('div', null, 'tier-items');
+      itemsWrap.dataset.tier = t;
+
+      // Wire HTML5 dropzone handlers on both row and itemsWrap
+      const handleDragOver = (e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        row.classList.add('tier-drop-active');
+      };
+      const handleDragLeave = () => {
+        row.classList.remove('tier-drop-active');
+      };
+      const handleDrop = (e) => {
+        e.preventDefault();
+        row.classList.remove('tier-drop-active');
+        const droppedId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || draggedTierItemId;
+        if (!droppedId) return;
+        window.VibeState.setItemTier(topic.id, droppedId, t);
+        window.VibeAudio.tap();
+        renderTierList();
+        refreshPosterCanvas();
+        showToast('Moved contender to ' + t + '-Tier!');
+      };
+
+      row.addEventListener('dragover', handleDragOver);
+      row.addEventListener('dragleave', handleDragLeave);
+      row.addEventListener('drop', handleDrop);
+
       const matched = topic.items.filter((it) => tierMap[it.id] === t);
       if (!matched.length) {
-        const hint = createSafeEl('span', 'Tap "' + t + '" below to assign', null);
+        const hint = createSafeEl('span', 'Drag contenders here or tap "' + t + '" below', null);
         hint.style.color = '#64748b';
         itemsWrap.appendChild(hint);
       } else {
         matched.forEach((it) => {
-          itemsWrap.appendChild(createSafeEl('span', (it.emoji || '') + ' ' + it.name, 'tier-chip'));
+          const chip = createSafeEl('span', (it.emoji || '') + ' ' + it.name, 'tier-chip');
+          chip.setAttribute('draggable', 'true');
+          chip.setAttribute('tabindex', '0');
+          chip.setAttribute('role', 'button');
+          chip.setAttribute('aria-label', it.name + ' in ' + t + ' tier. Drag to another tier or press ArrowUp/ArrowDown to move.');
+          chip.dataset.itemId = it.id;
+
+          chip.addEventListener('dragstart', (e) => {
+            draggedTierItemId = it.id;
+            chip.classList.add('dragging');
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', it.id);
+            }
+          });
+          chip.addEventListener('dragend', () => {
+            draggedTierItemId = null;
+            chip.classList.remove('dragging');
+          });
+          // WCAG 2.1 AA Keyboard Reordering (ArrowUp promotes tier, ArrowDown demotes tier, Delete unassigns)
+          chip.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' && tIdx > 0) {
+              e.preventDefault();
+              window.VibeState.setItemTier(topic.id, it.id, tierDefs[tIdx - 1]);
+              renderTierList();
+              refreshPosterCanvas();
+            } else if (e.key === 'ArrowDown' && tIdx < tierDefs.length - 1) {
+              e.preventDefault();
+              window.VibeState.setItemTier(topic.id, it.id, tierDefs[tIdx + 1]);
+              renderTierList();
+              refreshPosterCanvas();
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+              e.preventDefault();
+              window.VibeState.setItemTier(topic.id, it.id, null);
+              renderTierList();
+              refreshPosterCanvas();
+            }
+          });
+
+          itemsWrap.appendChild(chip);
         });
       }
       row.appendChild(itemsWrap);
@@ -246,18 +367,49 @@
 
     const poolEl = document.getElementById('tierPool');
     poolEl.textContent = '';
+    poolEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      poolEl.classList.add('tier-drop-active');
+    });
+    poolEl.addEventListener('dragleave', () => poolEl.classList.remove('tier-drop-active'));
+    poolEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      poolEl.classList.remove('tier-drop-active');
+      const droppedId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || draggedTierItemId;
+      if (!droppedId) return;
+      window.VibeState.setItemTier(topic.id, droppedId, null);
+      renderTierList();
+      refreshPosterCanvas();
+      showToast('Returned contender to unranked pool.');
+    });
+
     topic.items.forEach((it) => {
       const pr = createSafeEl('div', null, 'pool-row');
-      pr.appendChild(createSafeEl('span', (it.emoji || '•') + ' ' + it.name, null));
+      pr.setAttribute('draggable', 'true');
+      pr.dataset.itemId = it.id;
+      pr.addEventListener('dragstart', (e) => {
+        draggedTierItemId = it.id;
+        pr.classList.add('dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', it.id);
+        }
+      });
+      pr.addEventListener('dragend', () => {
+        draggedTierItemId = null;
+        pr.classList.remove('dragging');
+      });
+
+      const currentTier = tierMap[it.id] ? ' [' + tierMap[it.id] + '-Tier]' : '';
+      pr.appendChild(createSafeEl('span', '⠿ ' + (it.emoji || '•') + ' ' + it.name + currentTier, null));
       const btnGroup = createSafeEl('div', null, 'tier-btn-group');
       tierDefs.forEach((t) => {
         const b = createSafeEl('button', t, 'tier-assign-btn' + (tierMap[it.id] === t ? ' selected' : ''));
         b.type = 'button';
         b.addEventListener('click', () => {
           window.VibeAudio.tap();
-          if (!window.VibeState.data.tiers[topic.id]) window.VibeState.data.tiers[topic.id] = {};
-          window.VibeState.data.tiers[topic.id][it.id] = window.VibeState.data.tiers[topic.id][it.id] === t ? null : t;
-          window.VibeState.save();
+          const nextTier = tierMap[it.id] === t ? null : t;
+          window.VibeState.setItemTier(topic.id, it.id, nextTier);
           renderTierList();
           refreshPosterCanvas();
         });
@@ -270,16 +422,27 @@
 
   function renderAiPacks() {
     const wrap = document.getElementById('aiPackButtons');
+    if (!wrap) return;
     wrap.textContent = '';
     window.VibeGenAI.TRENDING_PACKS.forEach((pack) => {
       const btn = createSafeEl('button', pack.label, 'topic-pill');
       btn.type = 'button';
       btn.addEventListener('click', () => {
-        const copyPack = { ...pack, id: pack.id + '-' + Date.now() };
+        const copyPack = {
+          ...pack,
+          id: pack.id + '-' + Date.now(),
+          items: pack.items.map((it) => ({ ...it }))
+        };
         window.VibeState.addTopic(copyPack);
         renderAll();
         document.querySelector('.nav-tab[data-tab="arena"]').click();
-        showToast('Loaded "' + pack.title + '"!');
+        showToast('Loaded 32-Seed Pack: "' + pack.title + '"!');
+        if (window.VibeVisuals && window.VibeVisuals.resolveTopicSeedImages) {
+          window.VibeVisuals.resolveTopicSeedImages(copyPack, () => {
+            updateSeedImageStatusText();
+            renderArena();
+          }).catch(() => {});
+        }
       });
       wrap.appendChild(btn);
     });
@@ -287,22 +450,27 @@
 
   function refreshPosterCanvas(overrideResolution) {
     const canvas = document.getElementById('posterCanvas');
+    if (!canvas) return;
     const topic = window.VibeState.getActiveTopic();
     const bracket = window.VibeState.getActiveBracket();
     const tierMap = window.VibeState.data.tiers[topic.id] || {};
 
-    let activePhoto = cachedPhotoImg;
-    if (!activePhoto && bracket.champion) {
-      const champUrl = window.VibeState.getContenderPhoto(bracket.champion.id);
-      if (champUrl) {
+    let champPhoto = null;
+    if (bracket.champion) {
+      const champUrl = window.VibeState.getContenderPhoto(bracket.champion.id) || bracket.champion.imageUrl;
+      if (champUrl && window.VibeVisuals.isSafeImageUrl(champUrl)) {
         if (cachedChampionPhotoUrl === champUrl && cachedChampionImg) {
-          activePhoto = cachedChampionImg;
+          champPhoto = cachedChampionImg;
         } else {
           cachedChampionPhotoUrl = champUrl;
           const img = new Image();
+          if (champUrl.startsWith('https://')) img.crossOrigin = 'anonymous';
           img.onload = () => {
             cachedChampionImg = img;
             refreshPosterCanvas();
+          };
+          img.onerror = () => {
+            cachedChampionImg = null;
           };
           img.src = champUrl;
         }
@@ -317,7 +485,9 @@
       handle: window.VibeState.data.userHandle,
       quote: window.VibeState.data.userQuote || '',
       topHotTake: window.VibeState.getTopicTopHotTake(topic.id),
-      photoImg: activePhoto
+      photoImg: cachedPhotoImg || champPhoto,
+      championPhotoImg: champPhoto,
+      fusionMeta: activeFusionMeta
     });
   }
 
@@ -349,11 +519,13 @@
     } else if (round.length === 1) {
       b.runnerUp = loser;
       b.champion = winner;
+      // POD2-305 (FD-P0-20261114-05): Automatically populate S/A/B/C/D Tier List on Champion Crown!
+      window.VibeState.autoPopulateTiersFromBracket(topic, b);
       window.VibeAudio.win();
       window.VibeVisuals.triggerConfetti();
       window.VibeState.save();
       renderAll();
-      showToast('Champion Crowned: ' + winner.name + '!');
+      showToast('Champion Crowned: ' + winner.name + '! Tier List auto-populated (S/A/B/C/D).');
       return;
     }
 
@@ -429,6 +601,7 @@
       document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
       if (tab.dataset.tab === 'poster') refreshPosterCanvas();
       if (tab.dataset.tab === 'tree') renderBracketTree();
+      if (tab.dataset.tab === 'tiers') renderTierList();
     });
   });
 
@@ -443,8 +616,33 @@
     window.VibeState.initBracket(window.VibeState.getActiveTopic());
     window.VibeState.save();
     renderAll();
-    showToast('Bracket restarted.');
+    showToast('32-Seed Bracket restarted.');
   });
+
+  // POD2-303: Manual / On-Demand Real-Time 32-Seed Image Fetch Button
+  const btnFetchSeedImages = document.getElementById('btnFetchSeedImages');
+  if (btnFetchSeedImages) {
+    btnFetchSeedImages.addEventListener('click', async () => {
+      const topic = window.VibeState.getActiveTopic();
+      btnFetchSeedImages.disabled = true;
+      btnFetchSeedImages.textContent = '⏳ Fetching 32 Seed Photos...';
+      try {
+        const count = await window.VibeVisuals.resolveTopicSeedImages(topic, (done, total) => {
+          const statusEl = document.getElementById('seedImgStatusText');
+          if (statusEl) statusEl.textContent = '🖼️ Resolving real-time seed photos: ' + done + ' / ' + total + ' cached...';
+        });
+        renderArena();
+        refreshPosterCanvas();
+        showToast('Resolved ' + count + ' real-time contender photos into IndexedDB vault!');
+      } catch (e) {
+        showToast('Using cached / procedural visuals while offline.');
+      } finally {
+        btnFetchSeedImages.disabled = false;
+        btnFetchSeedImages.textContent = '🔍 Fetch Live Seed Photos';
+        updateSeedImageStatusText();
+      }
+    });
+  }
 
   document.getElementById('btnToggleSfx').addEventListener('click', (e) => {
     const on = window.VibeAudio.toggle();
@@ -487,15 +685,105 @@
     document.querySelector('.nav-tab[data-tab="poster"]').click();
   });
 
+  const btnGoTiersFromChampion = document.getElementById('btnGoTiersFromChampion');
+  if (btnGoTiersFromChampion) {
+    btnGoTiersFromChampion.addEventListener('click', () => {
+      document.querySelector('.nav-tab[data-tab="tiers"]').click();
+      showToast('Drag and drop any contender chip to customize your S/A/B/C/D tiers!');
+    });
+  }
+
+  const btnAutoRankTiers = document.getElementById('btnAutoRankTiers');
+  if (btnAutoRankTiers) {
+    btnAutoRankTiers.addEventListener('click', () => {
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      if (b.history.length > 0) {
+        window.VibeState.autoPopulateTiersFromBracket(topic, b);
+      } else {
+        // Seed-order preview distribution (2 S, 2 A, 4 B, 8 C, 16 D) if no matches played yet
+        const previewMap = {};
+        topic.items.forEach((it, idx) => {
+          if (idx < 2) previewMap[it.id] = 'S';
+          else if (idx < 4) previewMap[it.id] = 'A';
+          else if (idx < 8) previewMap[it.id] = 'B';
+          else if (idx < 16) previewMap[it.id] = 'C';
+          else previewMap[it.id] = 'D';
+        });
+        window.VibeState.data.tiers[topic.id] = previewMap;
+        window.VibeState.save();
+      }
+      renderTierList();
+      refreshPosterCanvas();
+      showToast('Auto-populated S / A / B / C / D tiers! Drag and drop chips to adjust.');
+    });
+  }
+
   function buildCaptionText() {
     const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
-    if (!b.champion) return 'Playing "' + topic.title + '" on VibeBracket Arena by NetHustle!';
-    return '👑 My "' + topic.title + '" Champion: ' + b.champion.name + ' (Runner-up: ' + (b.runnerUp ? b.runnerUp.name : '—') + ') — Built on VibeBracket Arena by NetHustle!';
+    if (!b.champion) return 'Playing "' + topic.title + '" (32-Seed Arena) on VibeBracket Arena by NetHustle!';
+    return '👑 My 32-Seed "' + topic.title + '" Champion: ' + b.champion.name + ' (Runner-up: ' + (b.runnerUp ? b.runnerUp.name : '—') + ') — Built on VibeBracket Arena by NetHustle!';
   }
 
   document.getElementById('btnCopySummary').addEventListener('click', () => copyTextSafe(buildCaptionText(), 'Results copied!'));
   document.getElementById('btnCopyShareText').addEventListener('click', () => copyTextSafe(buildCaptionText(), 'Viral caption copied!'));
+
+  // POD2-304: GenAI Co-Star Hero Scene Fusion Button + HK PDPO / GDPR Consent Gate
+  const btnRunPosterGenAiFusion = document.getElementById('btnRunPosterGenAiFusion');
+  const posterFusionModeSelect = document.getElementById('posterFusionModeSelect');
+  const posterGenAiConsentCheck = document.getElementById('posterGenAiConsentCheck');
+
+  if (posterFusionModeSelect) {
+    posterFusionModeSelect.addEventListener('change', (e) => {
+      window.VibeState.data.posterFusionMode = e.target.value;
+      window.VibeState.save();
+      refreshPosterCanvas();
+    });
+  }
+
+  if (posterGenAiConsentCheck) {
+    posterGenAiConsentCheck.addEventListener('change', (e) => {
+      window.VibeState.data.posterGenAiConsent = Boolean(e.target.checked);
+    });
+  }
+
+  if (btnRunPosterGenAiFusion) {
+    btnRunPosterGenAiFusion.addEventListener('click', async () => {
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      const mode = posterFusionModeSelect ? posterFusionModeSelect.value : 'canvas-fusion';
+      const consent = posterGenAiConsentCheck ? posterGenAiConsentCheck.checked : false;
+      const apiKey = document.getElementById('aiApiKeyInput') ? document.getElementById('aiApiKeyInput').value : '';
+
+      if (mode === 'genai-fusion' && !consent) {
+        showToast('Please check the HK PDPO / GDPR consent box before external GenAI scene synthesis.');
+        return;
+      }
+
+      btnRunPosterGenAiFusion.disabled = true;
+      btnRunPosterGenAiFusion.textContent = '✨ Fusing Co-Star Hero Scene...';
+      try {
+        if (mode === 'genai-fusion') {
+          activeFusionMeta = await window.VibePoster.runGenAiHeroFusion(topic, b, apiKey, consent);
+        } else {
+          const champName = b.champion ? b.champion.name : topic.items[0].name;
+          activeFusionMeta = {
+            mode: 'smart-canvas-neural',
+            genAiCaption: 'CO-STARRING WITH ' + champName.toUpperCase().slice(0, 22),
+            scenePrompt: '100% On-Device Smart Canvas Co-Star Scene Fusion'
+          };
+        }
+        refreshPosterCanvas();
+        showToast('Co-Star Hero Scene fused on Poster Canvas!');
+      } catch (err) {
+        showToast(err.message || 'Could not run scene fusion.');
+      } finally {
+        btnRunPosterGenAiFusion.disabled = false;
+        btnRunPosterGenAiFusion.textContent = '✨ Run GenAI Co-Star Scene Fusion';
+      }
+    });
+  }
 
   document.getElementById('btnDownloadPoster').addEventListener('click', () => {
     refreshPosterCanvas('1x');
@@ -504,7 +792,7 @@
     link.href = document.getElementById('posterCanvas').toDataURL('image/png');
     link.click();
     const aspect = window.VibeState.data.posterAspect || '9:16';
-    showToast(aspect + ' Poster PNG downloaded!');
+    showToast(aspect + ' Hero Fusion Poster PNG downloaded!');
   });
 
   // POD2-204: 4K Creator Pro Poster Export (2160x3840 Story / 2160x2160 Square / 2160x2700 Portrait)
@@ -549,7 +837,7 @@
       img.onload = () => {
         cachedPhotoImg = img;
         refreshPosterCanvas();
-        showToast('Photo baked into Winner Poster!');
+        showToast('Your photo is now fused into the Championship Hero Scene!');
       };
       img.src = reader.result;
     };
@@ -558,6 +846,7 @@
 
   document.getElementById('btnClearPhoto').addEventListener('click', () => {
     cachedPhotoImg = null;
+    activeFusionMeta = null;
     document.getElementById('posterPhotoInput').value = '';
     refreshPosterCanvas();
     showToast('Photo removed from poster.');
@@ -578,13 +867,16 @@
     const modelVal = document.getElementById('aiModelSelect').value;
     const btn = document.getElementById('btnRunGenAI');
     btn.disabled = true;
-    btn.textContent = 'Generating...';
+    btn.textContent = 'Synthesizing 32 Seeds & Live Photos...';
     try {
-      const topicObj = await window.VibeGenAI.generateTopic(promptVal, keyVal, modelVal);
+      const topicObj = await window.VibeGenAI.generateTopic(promptVal, keyVal, modelVal, () => {
+        updateSeedImageStatusText();
+        renderArena();
+      });
       window.VibeState.addTopic(topicObj);
       renderAll();
       document.querySelector('.nav-tab[data-tab="arena"]').click();
-      showToast('AI Bracket "' + topicObj.title + '" ready!');
+      showToast('32-Seed AI Bracket "' + topicObj.title + '" ready!');
     } catch (err) {
       showToast(err.message || 'Could not generate AI bracket.');
     } finally {
@@ -592,6 +884,19 @@
       btn.textContent = 'Generate AI Bracket';
     }
   });
+
+  const btnFillSample32 = document.getElementById('btnFillSample32');
+  if (btnFillSample32) {
+    btnFillSample32.addEventListener('click', () => {
+      const titleInput = document.getElementById('customTitle');
+      const promptHint = (titleInput && titleInput.value.trim()) || 'Sci-Fi & Mecha Classics';
+      const generated = window.VibeGenAI.synthesizeLocalTopic(promptHint);
+      if (titleInput && !titleInput.value.trim()) titleInput.value = generated.title;
+      document.getElementById('customSize').value = '32';
+      document.getElementById('customItems').value = generated.items.map((it) => it.name).join('\n');
+      showToast('Populated 32 authentic contenders! Click Launch 32-Seed Bracket.');
+    });
+  }
 
   document.getElementById('createBracketForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -602,15 +907,22 @@
       showToast('Enter exactly ' + size + ' contenders (currently ' + lines.length + ').');
       return;
     }
-    window.VibeState.addTopic({
+    const newTopic = {
       id: 'custom-' + Date.now(),
       title,
       subtitle: 'Custom ' + size + '-contender tournament',
-      items: lines.map((name, idx) => ({ id: 'c' + idx, name, tag: 'Seed #' + (idx + 1), emoji: '🎯' }))
-    });
+      items: lines.map((name, idx) => ({ id: 'c' + idx, name, tag: 'Seed #' + (idx + 1), emoji: '🎯', searchQuery: name }))
+    };
+    window.VibeState.addTopic(newTopic);
     renderAll();
     document.querySelector('.nav-tab[data-tab="arena"]').click();
-    showToast('Launched "' + title + '"!');
+    showToast('Launched "' + title + '" (' + size + ' seeds)!');
+    if (window.VibeVisuals && window.VibeVisuals.resolveTopicSeedImages) {
+      window.VibeVisuals.resolveTopicSeedImages(newTopic, () => {
+        updateSeedImageStatusText();
+        renderArena();
+      }).catch(() => {});
+    }
   });
 
   // POD2-205: Close CAR-20261114-01 (BUG-P1-20261114-01) via UTF-8 safe PackSanitizer.encodeShareTopic
@@ -692,19 +1004,20 @@
     document.getElementById('modalBackdrop').classList.add('open');
   });
 
-  // POD2-204: Transparent Creator Pro Pricing & 4K Preview Modal (Cap. 362 & WCAG 2.1 AA compliant)
+  // POD2-306 (FIN-OBS-20261114-01): Strict CFO-Approved Creator Pro Pricing ($9.99/mo or $79.00/yr)
   document.getElementById('btnOpenPro').addEventListener('click', () => {
-    openModal('VibeBracket Creator Pro — Transparent Pricing ($9.99/mo or $79/yr)', [
-      'Free Tier ($0.00 forever): Unlimited 4/8/16/32-seed brackets, custom contender photos stored locally in IndexedDB (>50MB vault), Live Streamer HUD hotkeys (1/2/Space/Z), JSON/CSV pack import/export, zero-key AI topic synthesis, and 1080p viral posters.',
-      'Creator Pro ($9.99 USD/month or $79.00 USD/year — save 34%): Unlocks 4K Ultra-HD (2160×3840 Story / 2160×2160 Square) Championship Poster exports (available to preview & test now in the Photo Poster tab!), custom studio brand watermarks, and 64-seed mega-tournaments.',
+    openModal('VibeBracket Creator Pro — Transparent Pricing ($9.99/mo or $79.00/yr)', [
+      'Free Tier ($0.00 forever): Unlimited 32-seed knockout tournaments, real-time seed image lookup (Wikimedia / Google Image CORS pipeline), local IndexedDB photo vault (>50MB), auto-populated drag-and-drop S/A/B/C/D Tier Lists, Live Streamer HUD hotkeys (1/2/Space/Z), JSON/CSV pack import/export, and 1080p Hero Scene Co-Star Posters.',
+      'Creator Pro ($9.99 USD/month or $79.00 USD/year — save 34%): Unlocks 4K Ultra-HD (2160×3840 Story / 2160×2160 Square / 2160×2700 Portrait) Championship Hero Fusion Poster exports (available to preview & test now in the Photo Poster tab!), custom studio brand watermarks, and priority cloud pack hosting.',
       'No Dark Patterns Guarantee: Zero hidden fees, zero forced sign-ups, and 1-click cancellation at any time in full compliance with the Hong Kong Trade Descriptions Ordinance (Cap. 362).'
     ]);
   });
 
   document.getElementById('btnOpenLegal').addEventListener('click', () => {
-    openModal('Terms, Privacy & Anti-Harassment Policy', [
+    openModal('Terms, Privacy, IP Attribution & Anti-Harassment Policy', [
       'NetHustle Software Labs Ltd. operates under: "Make money, Legally, NEVER HARM ANY HUMAN."',
-      'Privacy Guarantee (GDPR, CCPA & HK PDPO Cap. 486): Uploaded contender photos (IndexedDB NetHustlePhotoStore), brackets, and BYOK API keys are processed and stored 100% locally on your device. Zero images are ever transmitted to any server.',
+      'Privacy & Biometric Data Guarantee (GDPR, CCPA & HK PDPO Cap. 486): Uploaded contender photos and selfie Co-Star Hero Posters are processed and stored 100% locally on your device inside IndexedDB (NetHustlePhotoStore). Optional external BYOK GenAI scene synthesis is strictly gated behind an unchecked-by-default explicit user consent checkbox.',
+      'Real-Time Seed Image Attribution & Fair Use: Live contender thumbnails retrieved from Wikimedia Commons / Wikipedia PageImages / Openverse are loaded over HTTPS with crossOrigin="anonymous" for transformative community commentary.',
       'Anti-Harassment & Security Rule: Custom brackets and imported JSON/CSV packs are sanitized via PackSanitizer and restricted to public media, topics, food, and ideas—never private individuals.'
     ]);
   });
@@ -714,7 +1027,7 @@
     if (e.target.id === 'modalBackdrop') document.getElementById('modalBackdrop').classList.remove('open');
   });
 
-  // v2.2.0: Custom Contender Photo Uploads via NetHustlePhotoStore IndexedDB Vault (POD2-201)
+  // Custom Contender Photo Uploads via NetHustlePhotoStore IndexedDB Vault (POD2-201)
   async function handleContenderFile(file, side) {
     if (!file) return;
     try {

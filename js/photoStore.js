@@ -1,10 +1,12 @@
-// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
+// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
 /**
  * File: js/photoStore.js
  * Description: Client-side IndexedDB photo vault with automatic localStorage and in-memory fallback (POD2-201).
  * Change Log:
  *   - v1.0.0 (2026-11-14 01:55 HKT): Initial Common Repo release by Victor Lin (03_CTO) & Nadia Al-Mansoor (04_CISO).
  *   - v2.2.0 (2026-11-14 10:17 HKT): Integrated into VibeBracket Arena v2.2.0 for >50MB local photo capacity with zero cloud burn.
+ *
+   - v2.3.0 (2026-11-14 22:35 HKT): Added CORS-safe remote seed thumbnail caching support for POD2-303 real-time 32-seed image resolution.
  */
 window.NetHustlePhotoStore = (() => {
   const DB_NAME = 'NetHustle_VibeBracket_PhotoVault_v1';

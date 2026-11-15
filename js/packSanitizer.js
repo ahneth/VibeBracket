@@ -1,10 +1,12 @@
-// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
+// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
 /**
  * File: js/packSanitizer.js
  * Description: UTF-8 safe URL-hash codec, power-of-two tournament schema validator, and CSV/JSON pack import/export engine.
  * Change Log:
  *   - v1.0.0 (2026-11-14 01:55 HKT): Remediates BUG-P1-20261114-01 (CAR-20261114-01), BUG-P2-20261114-02 (CAR-20261114-02), and OBS-P3-01.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Added exportJsonPack(), exportCsvPack(), and parseImportedPack() for POD2-203 client-side tournament pack portability.
+ *
+   - v2.3.0 (2026-11-14 22:35 HKT): Preserved imageSource attribution metadata and https:// imageUrl validation for 32-seed packs (POD2-301 & POD2-303).
  */
 window.PackSanitizer = (() => {
   const VALID_SEED_COUNTS = new Set([4, 8, 16, 32]);
@@ -39,7 +41,9 @@ window.PackSanitizer = (() => {
       const imageUrl = (typeof itemObj.imageUrl === 'string' && !DANGEROUS_URI_RE.test(itemObj.imageUrl))
         ? itemObj.imageUrl
         : undefined;
-      return { id: itemObj.id ? cleanText(itemObj.id, 32, true) : ('c_' + idx), name, tag, emoji, imageUrl };
+      const imageSource = itemObj.imageSource ? cleanText(itemObj.imageSource, 60, true) : undefined;
+      const searchQuery = itemObj.searchQuery ? cleanText(itemObj.searchQuery, 80, true) : undefined;
+      return { id: itemObj.id ? cleanText(itemObj.id, 32, true) : ('c_' + idx), name, tag, emoji, imageUrl, imageSource, searchQuery };
     });
     return { id: id || ('shared-' + Date.now()), title, subtitle, items };
   }

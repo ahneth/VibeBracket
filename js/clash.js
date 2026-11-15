@@ -1,4 +1,4 @@
-// Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT
+// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
 /**
  * File: js/clash.js
  * Description: Client-side contender photo crop/compression (<150KB) and animated Versus Clash transition controller.
@@ -6,6 +6,8 @@
  *   - v2.0.0 (2026-11-13 17:55 HKT): Initial module for Track A custom contender photo processing and 60fps Versus Clash transitions.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Added drag-and-drop file binding helper (bindDropZone) and synced canvas spark bursts + audio clash SFX on transition.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Added compressAndStoreContenderPhoto(itemId, file) wiring NetHustlePhotoStore IndexedDB vault directly into the photo pipeline (POD2-201).
+ *
+   - v2.3.0 (2026-11-14 22:35 HKT): Synced header for v2.3.0 32-seed arena & drag-and-drop contender photo pipeline.
  */
 window.VibeClash = (() => {
   /**
