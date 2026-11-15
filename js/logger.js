@@ -1,4 +1,4 @@
-// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
+// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
 /**
  * File: js/logger.js
  * Description: Deterministic in-app diagnostic ring-buffer logger and Web Audio SFX synthesizer.
@@ -10,6 +10,8 @@
  *   - v2.2.0 (2026-11-14 10:17 HKT): Maintained ring-buffer cap (120 entries) and Web Audio SFX for v2.2.0 Streamer HUD & 4K export.
  *
    - v2.3.0 (2026-11-14 22:35 HKT): Bumped header for v2.3.0 Founder Option 1 release (32-seed telemetry & real-time image lookup diagnostics).
+ *   - v2.4.0 (2026-11-15 10:36 HKT): Synchronized build metadata and v2.4.0 multi-provider seed image & challenge compatibility integration.
+ *   - v2.5.0 (2026-11-15 22:14 HKT): Synchronized build metadata and diagonal cross-section VS battle clash integration (POD2-503).
  */
 window.AppLogger = (() => {
   const entries = [];

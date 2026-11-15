@@ -1,7 +1,7 @@
-// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
+// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
 /**
  * File: js/poster.js
- * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with GenAI / Smart Canvas Championship Hero Scene Co-Star Photo Fusion.
+ * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
  * Change Log:
  *   - v1.0.0 (2026-11-13 07:26 HKT): Initial dark poster renderer.
  *   - v1.1.0 (2026-11-13 07:46 HKT): Added circular user photo spotlight baking and 3 visual themes.
@@ -9,7 +9,9 @@
  *   - v2.0.0 (2026-11-13 17:55 HKT): Added 9:16 & 1:1 aspect ratios, NetHustle branding, contender graveyard, spice/hot-take badge, and QR share matrix.
  *   - v2.1.0 (2026-11-13 19:29 HKT): Automatic fallback to Champion custom contender photo in poster spotlight.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Added 4K Ultra-HD export scaling (2x resolution: 2160x3840 Story, 2160x2160 Square, 2160x2700 Portrait) for POD2-204.
- *   - v2.3.0 (2026-11-14 22:35 HKT): Upgraded to GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion (drawHeroSceneFusion + synthesizeGenAiScenePrompt) merging the user's uploaded photo/face directly with the winning contender scene alongside VibeBracket Arena · by NetHustle branding (POD2-304 / FD-P0-20261114-04).
+ *   - v2.3.0 (2026-11-14 22:35 HKT): Upgraded to GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion (drawHeroSceneFusion + runGenAiHeroFusion) merging the user's uploaded photo/face directly with the winning contender scene alongside VibeBracket Arena · by NetHustle branding (POD2-304 / FD-P0-20261114-04).
+ *   - v2.4.0 (2026-11-15 10:36 HKT): Added 4 Co-Star Hero Composition Presets (rivals, versus, podium, hologram) with live scale/offset/rim-glow slider transforms (POD2-402) and renderTierPoster() for 1080p/4K 32-Seed Tier-List PNG exports with glowing "🔥 Robbery Fixed (+N)" badges (POD2-403).
+ *   - v2.5.0 (2026-11-15 22:14 HKT): Updated renderTierPoster() header & tier badges to display exact 2-6-8-8-8 Tier System counts and C/D Placement Battle status (POD2-504).
  */
 window.VibePoster = (() => {
   const THEMES = {
@@ -25,28 +27,41 @@ window.VibePoster = (() => {
     '4:5': { width: 1080, height: 1350, label: '4:5 Portrait (1080×1350)' }
   };
 
-  /** Draws an image cover-fitted inside a target rectangle with optional alpha and radial feathering. */
-  function drawCoverImage(ctx, img, x, y, w, h, alpha = 1) {
+  const PRESETS = {
+    rivals: { id: 'rivals', label: 'Back-to-Back Rivals', badge: '👑 BACK-TO-BACK RIVALS' },
+    versus: { id: 'versus', label: 'Split Neon Versus', badge: '⚡ SPLIT NEON VERSUS' },
+    podium: { id: 'podium', label: 'Championship Podium Co-Star', badge: '🏆 PODIUM CO-STAR' },
+    hologram: { id: 'hologram', label: 'Trading Card Foil Hologram', badge: '✨ HOLO FOIL #01/32' }
+  };
+
+  /** Draws an image cover-fitted inside a target rectangle with optional alpha, zoom scale, and vertical offset. */
+  function drawCoverImage(ctx, img, x, y, w, h, alpha = 1, zoomFactor = 1, offsetY = 0) {
     if (!img || !img.width || !img.height) return;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.beginPath();
     ctx.rect(x, y, w, h);
     ctx.clip();
-    const scale = Math.max(w / img.width, h / img.height);
+    const baseScale = Math.max(w / img.width, h / img.height);
+    const scale = baseScale * Math.max(0.5, Math.min(2.0, Number(zoomFactor) || 1));
     const dw = img.width * scale;
     const dh = img.height * scale;
-    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2 + (Number(offsetY) || 0), dw, dh);
     ctx.restore();
   }
 
   /**
-   * POD2-304 (FD-P0-20261114-04): Smart Canvas / GenAI Hero Scene Co-Star Photo Fusion.
-   * Merges the user's uploaded photo/face together with the winning contender's image/scene
-   * into a unified Championship Hero Stage with cyber-neon rim lighting, luminance blending,
-   * and dramatic Co-Star energy flare alongside the VibeBracket Arena · by NetHustle brand.
+   * POD2-304 & POD2-402: Smart Canvas / GenAI Hero Scene Co-Star Photo Fusion.
+   * Supports 4 composition presets ('rivals', 'versus', 'podium', 'hologram') and real-time
+   * user photo zoom scale, vertical offset, and cyber-neon rim-glow intensity sliders.
    */
-  function drawHeroSceneFusion(ctx, userPhotoImg, champPhotoImg, fallbackEmoji, stageX, stageY, stageW, stageH, theme, fusionMeta) {
+  function drawHeroSceneFusion(ctx, userPhotoImg, champPhotoImg, fallbackEmoji, stageX, stageY, stageW, stageH, theme, fusionMeta, transformOpts = {}) {
+    const presetKey = PRESETS[transformOpts.preset] ? transformOpts.preset : 'rivals';
+    const presetSpec = PRESETS[presetKey];
+    const userZoom = (Number(transformOpts.photoScale) || 100) / 100;
+    const userOffsetY = Number(transformOpts.photoOffset) || 0;
+    const rimGlowPct = Math.max(0, Math.min(100, Number(transformOpts.rimGlow ?? 75))) / 100;
+
     ctx.save();
     ctx.beginPath();
     ctx.rect(stageX, stageY, stageW, stageH);
@@ -62,68 +77,98 @@ window.VibePoster = (() => {
 
     // 2. Ambient Full-Stage Backdrop Blend from Champion + User Photos
     if (champPhotoImg) {
-      drawCoverImage(ctx, champPhotoImg, stageX, stageY, stageW, stageH, 0.28);
+      drawCoverImage(ctx, champPhotoImg, stageX, stageY, stageW, stageH, 0.26, 1.05, 0);
     }
     if (userPhotoImg) {
-      drawCoverImage(ctx, userPhotoImg, stageX, stageY, stageW, stageH, 0.22);
+      drawCoverImage(ctx, userPhotoImg, stageX, stageY, stageW, stageH, 0.22, userZoom, userOffsetY);
     }
 
-    // 3. Co-Star Split/Merged Hero Portraits in the Left Visual Arena (width 390px)
+    // 3. Co-Star Arena Stage (left 390px) rendered by active preset
     const arenaW = 390;
     const arenaCenterX = stageX + arenaW / 2;
     const arenaCenterY = stageY + stageH / 2;
 
     if (userPhotoImg && champPhotoImg && userPhotoImg !== champPhotoImg) {
-      // Dual Photo Hero Fusion: Champion + User Co-Star merged with neon energy seam & screen glow
-      drawCoverImage(ctx, champPhotoImg, stageX + 14, stageY + 14, arenaW / 2 + 28, stageH - 28, 0.92);
-      drawCoverImage(ctx, userPhotoImg, stageX + arenaW / 2 - 14, stageY + 14, arenaW / 2, stageH - 28, 0.92);
+      if (presetKey === 'podium') {
+        // Championship Podium Twin Cards
+        drawCoverImage(ctx, champPhotoImg, stageX + 18, stageY + 28, arenaW / 2 - 22, stageH - 76, 0.94, 1.0, 0);
+        drawCoverImage(ctx, userPhotoImg, stageX + arenaW / 2 + 4, stageY + 18, arenaW / 2 - 22, stageH - 66, 0.96, userZoom, userOffsetY);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 3 + rimGlowPct * 3;
+        ctx.strokeRect(stageX + 18, stageY + 28, arenaW / 2 - 22, stageH - 76);
+        ctx.strokeRect(stageX + arenaW / 2 + 4, stageY + 18, arenaW / 2 - 22, stageH - 66);
+      } else {
+        // Rivals / Versus / Hologram Dual Split
+        drawCoverImage(ctx, champPhotoImg, stageX + 14, stageY + 14, arenaW / 2 + 24, stageH - 28, 0.92, 1.0, 0);
+        drawCoverImage(ctx, userPhotoImg, stageX + arenaW / 2 - 10, stageY + 14, arenaW / 2 - 4, stageH - 28, 0.94, userZoom, userOffsetY);
+      }
 
-      // Neural/Luminance Center Fusion Seam & Rim Lighting
-      const seamGrad = ctx.createLinearGradient(stageX + arenaW / 2 - 48, stageY, stageX + arenaW / 2 + 48, stageY);
+      // Center Seam & Preset Overlay
+      const seamGrad = ctx.createLinearGradient(stageX + arenaW / 2 - 52, stageY, stageX + arenaW / 2 + 52, stageY);
       seamGrad.addColorStop(0, 'rgba(9, 13, 22, 0)');
-      seamGrad.addColorStop(0.5, theme.accent);
+      seamGrad.addColorStop(0.5, presetKey === 'versus' ? '#f43f5e' : theme.accent);
       seamGrad.addColorStop(1, 'rgba(9, 13, 22, 0)');
       ctx.fillStyle = seamGrad;
-      ctx.globalAlpha = 0.55;
-      ctx.fillRect(stageX + arenaW / 2 - 48, stageY + 14, 96, stageH - 28);
+      ctx.globalAlpha = 0.25 + rimGlowPct * 0.55;
+      ctx.fillRect(stageX + arenaW / 2 - 52, stageY + 14, 104, stageH - 28);
       ctx.globalAlpha = 1;
 
-      // Co-Star Fusion Crown Badge at intersection
+      if (presetKey === 'versus') {
+        // Diagonal Lightning Split Line
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 3 + rimGlowPct * 4;
+        ctx.beginPath();
+        ctx.moveTo(arenaCenterX + 18, stageY + 14);
+        ctx.lineTo(arenaCenterX - 18, stageY + stageH - 14);
+        ctx.stroke();
+      }
+
+      // Center Emblem Badge
       ctx.beginPath();
       ctx.arc(arenaCenterX, arenaCenterY, 34, 0, Math.PI * 2);
       ctx.fillStyle = '#090d16';
       ctx.fill();
       ctx.strokeStyle = theme.badge;
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3 + rimGlowPct * 3;
       ctx.stroke();
-      ctx.font = '32px Inter, sans-serif';
+      ctx.font = '30px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('👑', arenaCenterX, arenaCenterY + 11);
+      const centerIcon = presetKey === 'versus' ? '⚡' : (presetKey === 'podium' ? '🏆' : (presetKey === 'hologram' ? '✨' : '👑'));
+      ctx.fillText(centerIcon, arenaCenterX, arenaCenterY + 11);
       ctx.textAlign = 'left';
     } else if (userPhotoImg || champPhotoImg) {
-      // Single Photo Hero Stage with Duotone Rim Glow & Championship Halo
       const activeImg = userPhotoImg || champPhotoImg;
-      drawCoverImage(ctx, activeImg, stageX + 16, stageY + 16, arenaW - 32, stageH - 32, 0.95);
+      drawCoverImage(ctx, activeImg, stageX + 16, stageY + 16, arenaW - 32, stageH - 32, 0.95, userZoom, userOffsetY);
 
-      const haloGrad = ctx.createRadialGradient(arenaCenterX, arenaCenterY, 30, arenaCenterX, arenaCenterY, 185);
+      const haloGrad = ctx.createRadialGradient(arenaCenterX, arenaCenterY, 28, arenaCenterX, arenaCenterY, 190);
       haloGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-      haloGrad.addColorStop(0.75, 'rgba(56, 189, 248, 0.18)');
+      haloGrad.addColorStop(0.7, 'rgba(56, 189, 248, ' + (0.1 + rimGlowPct * 0.28).toFixed(2) + ')');
       haloGrad.addColorStop(1, theme.bg1);
       ctx.fillStyle = haloGrad;
       ctx.fillRect(stageX + 16, stageY + 16, arenaW - 32, stageH - 32);
     } else {
-      // Stylized Cyber Podium Emblem when no photo is loaded yet
       ctx.beginPath();
-      ctx.arc(arenaCenterX, arenaCenterY, 108, 0, Math.PI * 2);
+      ctx.arc(arenaCenterX, arenaCenterY, 106, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.fill();
       ctx.strokeStyle = theme.accent;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 3 + rimGlowPct * 4;
       ctx.stroke();
-      ctx.font = '86px Inter, sans-serif';
+      ctx.font = '84px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(fallbackEmoji || '👑', arenaCenterX, arenaCenterY + 30);
       ctx.textAlign = 'left';
+    }
+
+    // Optional Hologram Foil Iridescent Sheen when preset === 'hologram'
+    if (presetKey === 'hologram') {
+      const holoGrad = ctx.createLinearGradient(stageX, stageY, stageX + arenaW, stageY + stageH);
+      holoGrad.addColorStop(0, 'rgba(56, 189, 248, 0.18)');
+      holoGrad.addColorStop(0.35, 'rgba(236, 72, 153, 0.22)');
+      holoGrad.addColorStop(0.7, 'rgba(250, 204, 21, 0.18)');
+      holoGrad.addColorStop(1, 'rgba(52, 211, 153, 0.22)');
+      ctx.fillStyle = holoGrad;
+      ctx.fillRect(stageX + 14, stageY + 14, arenaW - 28, stageH - 28);
     }
 
     // 4. Right-Side Dark Gradient Scrim so Championship Typography is 100% WCAG Crisp
@@ -133,20 +178,17 @@ window.VibePoster = (() => {
     ctx.fillStyle = scrimGrad;
     ctx.fillRect(stageX + arenaW - 40, stageY, stageW - arenaW + 40, stageH);
 
-    // 5. Cyber-Arcade Rim Frame & Fusion Status Tag
-    ctx.strokeStyle = theme.accent;
-    ctx.lineWidth = 4;
+    // 5. Cyber-Arcade Rim Frame & Preset Tag
+    ctx.strokeStyle = presetKey === 'hologram' ? '#f472b6' : theme.accent;
+    ctx.lineWidth = 2 + rimGlowPct * 4;
     ctx.strokeRect(stageX + 14, stageY + 14, arenaW - 28, stageH - 28);
 
-    ctx.fillStyle = 'rgba(9, 13, 22, 0.84)';
+    ctx.fillStyle = 'rgba(9, 13, 22, 0.86)';
     ctx.fillRect(stageX + 24, stageY + stageH - 54, arenaW - 48, 32);
     ctx.fillStyle = theme.badge;
-    ctx.font = '800 15px Inter, sans-serif';
+    ctx.font = '800 14px Inter, sans-serif';
     ctx.textAlign = 'center';
-    const badgeLabel = (userPhotoImg && champPhotoImg && userPhotoImg !== champPhotoImg)
-      ? '✨ GENAI / SMART CO-STAR PHOTO FUSION'
-      : (userPhotoImg ? '📸 CREATOR + WINNER HERO SCENE' : '🏆 CHAMPION HERO STAGE');
-    ctx.fillText(badgeLabel, arenaCenterX, stageY + stageH - 32);
+    ctx.fillText(presetSpec.badge, arenaCenterX, stageY + stageH - 33);
     ctx.textAlign = 'left';
 
     if (fusionMeta && fusionMeta.genAiCaption) {
@@ -164,7 +206,7 @@ window.VibePoster = (() => {
 
   /**
    * Optional BYOK Multimodal GenAI Scene Fusion helper (POD2-304).
-   * Requires explicit user consent (options.consentChecked === true) before any external API call.
+   * Requires explicit user consent (consentChecked === true) before any external API call.
    */
   async function runGenAiHeroFusion(topic, bracket, apiKey, consentChecked) {
     if (!consentChecked) {
@@ -291,7 +333,7 @@ window.VibePoster = (() => {
     ctx.font = '900 48px Inter, sans-serif';
     ctx.fillText(String(topic.title).slice(0, 28), 78, 172);
 
-    // Champion + User Co-Star Hero Scene Card (POD2-304)
+    // Champion + User Co-Star Hero Scene Card (POD2-304 & POD2-402)
     const cardY = 208;
     const cardH = H <= 1080 ? 295 : 345;
     const champEmoji = bracket.champion ? bracket.champion.emoji : '👑';
@@ -305,7 +347,13 @@ window.VibePoster = (() => {
       W - 156,
       cardH,
       theme,
-      options.fusionMeta || null
+      options.fusionMeta || null,
+      {
+        preset: options.preset || 'rivals',
+        photoScale: options.photoScale ?? 100,
+        photoOffset: options.photoOffset ?? 0,
+        rimGlow: options.rimGlow ?? 75
+      }
     );
 
     ctx.strokeStyle = theme.accent;
@@ -394,10 +442,132 @@ window.VibePoster = (() => {
     ctx.restore();
   }
 
+  /**
+   * POD2-403: Renders a dedicated 1080x1350 (or 2160x2700 4K) 32-Seed S/A/B/C/D Tier-List Share Poster
+   * highlighting every manually promoted contender with a glowing "🔥 ROBBERY FIXED (+N)" badge.
+   */
+  function renderTierPoster(canvas, topic, bracket, tierMap = {}, autoTierMap = {}, options = {}) {
+    const scaleFactor = options.resolution === '4k' ? 2 : 1;
+    const W = 1080;
+    const H = 1350;
+    canvas.width = W * scaleFactor;
+    canvas.height = H * scaleFactor;
+
+    const ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.scale(scaleFactor, scaleFactor);
+    const theme = THEMES[options.theme] || THEMES.cyber;
+
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, theme.bg1);
+    grad.addColorStop(0.5, theme.bg2);
+    grad.addColorStop(1, theme.bg3);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = theme.accent;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(32, 32, W - 64, H - 64);
+
+    const tierOrder = ['S', 'A', 'B', 'C', 'D'];
+    const tierColors = { S: '#f87171', A: '#fb923c', B: '#fbbf24', C: '#34d399', D: '#38bdf8' };
+    let robberiesFixedCount = 0;
+    topic.items.forEach((it) => {
+      const orig = autoTierMap[it.id];
+      const cur = tierMap[it.id];
+      if (orig && cur && tierOrder.indexOf(orig) > tierOrder.indexOf(cur)) {
+        robberiesFixedCount += 1;
+      }
+    });
+
+    ctx.fillStyle = theme.accent;
+    ctx.font = '800 22px Inter, sans-serif';
+    ctx.fillText(scaleFactor === 2 ? 'VIBEBRACKET ARENA · 4K 2-6-8-8-8 TIER VERDICT POSTER' : 'VIBEBRACKET ARENA · 2-6-8-8-8 TIER VERDICT POSTER', 68, 92);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '900 42px Inter, sans-serif';
+    ctx.fillText(String(topic.title).slice(0, 30), 68, 148);
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '800 20px Inter, sans-serif';
+    const subLine = (bracket && bracket.champion ? ('👑 Champion: ' + bracket.champion.name + ' · ') : '')
+      + '🔥 ' + robberiesFixedCount + ' Bracket Robber' + (robberiesFixedCount === 1 ? 'y' : 'ies') + ' Fixed via Drag & Drop';
+    ctx.fillText(subLine.slice(0, 62), 68, 186);
+
+    const rowStartY = 212;
+    const rowH = 182;
+    const rowGap = 14;
+
+    tierOrder.forEach((t, idx) => {
+      const ry = rowStartY + idx * (rowH + rowGap);
+      // Row container
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.fillRect(68, ry, W - 136, rowH);
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(68, ry, W - 136, rowH);
+
+      // Left Tier Badge Box
+      ctx.fillStyle = tierColors[t];
+      ctx.fillRect(68, ry, 110, rowH);
+      ctx.fillStyle = '#090d16';
+      ctx.font = '900 56px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(t, 68 + 55, ry + rowH / 2 + 20);
+      ctx.textAlign = 'left';
+
+      // Render contender chips in this tier
+      const matched = topic.items.filter((it) => (tierMap[it.id] || (idx === 4 ? 'D' : '')) === t);
+      let cx = 198;
+      let cy = ry + 22;
+      const maxRight = W - 88;
+      matched.slice(0, 12).forEach((it) => {
+        const orig = autoTierMap[it.id];
+        const cur = tierMap[it.id];
+        const delta = (orig && cur && tierOrder.indexOf(orig) > tierOrder.indexOf(cur))
+          ? (tierOrder.indexOf(orig) - tierOrder.indexOf(cur))
+          : 0;
+        const label = (it.emoji || '•') + ' ' + it.name.slice(0, 16) + (delta > 0 ? (' 🔥+' + delta) : '');
+        ctx.font = '700 17px Inter, sans-serif';
+        const pillW = Math.min(340, Math.max(130, ctx.measureText(label).width + 26));
+        if (cx + pillW > maxRight) {
+          cx = 198;
+          cy += 44;
+        }
+        if (cy + 34 <= ry + rowH - 8) {
+          ctx.fillStyle = delta > 0 ? 'rgba(249, 115, 22, 0.28)' : 'rgba(30, 41, 59, 0.95)';
+          ctx.fillRect(cx, cy, pillW, 34);
+          ctx.strokeStyle = delta > 0 ? '#fbbf24' : 'rgba(148, 163, 184, 0.35)';
+          ctx.lineWidth = delta > 0 ? 2.5 : 1.5;
+          ctx.strokeRect(cx, cy, pillW, 34);
+          ctx.fillStyle = delta > 0 ? '#fde047' : '#f8fafc';
+          ctx.fillText(label, cx + 12, cy + 23);
+          cx += pillW + 10;
+        }
+      });
+    });
+
+    // Footer Brand Banner + QR Matrix
+    const footerY = H - 128;
+    ctx.fillStyle = 'rgba(9, 13, 22, 0.92)';
+    ctx.fillRect(68, footerY, W - 136, 82);
+    ctx.fillStyle = theme.accent;
+    ctx.font = '900 22px Inter, sans-serif';
+    ctx.fillText('VibeBracket Arena · by NETHUSTLE', 92, footerY + 35);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 17px Inter, sans-serif';
+    ctx.fillText('32-Seed Tier Verdict · 🔥 Robbery Fixed Badges · Beat My Bracket', 92, footerY + 64);
+
+    drawShareQrMatrix(ctx, (topic.id || 'vibebracket') + '-tiers', W - 164, footerY + 6, 68, theme.accent);
+    ctx.restore();
+  }
+
   return {
     ASPECTS,
+    PRESETS,
     drawHeroSceneFusion,
     runGenAiHeroFusion,
-    render
+    render,
+    renderTierPoster
   };
 })();

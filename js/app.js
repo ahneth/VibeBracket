@@ -1,4 +1,4 @@
-// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
+// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -10,6 +10,8 @@
  *   - v2.1.0 (2026-11-13 19:29 HKT): Added drag-and-drop contender photo support, mobile pinch-to-zoom & touch pan on Bracket Tree, live vote percentage split in Spice Card, and champion custom photo fallback in poster spotlight.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Closed CAR-20261114-01 & CAR-20261114-02 via PackSanitizer.encodeShareTopic(), added IndexedDB vault boot hydration (POD2-201), added Live Streamer HUD & keyboard shortcuts (1, 2, Space, Z) (POD2-202), added JSON/CSV Pack Export & Import (POD2-203), and added 4K Creator Pro Poster Export & transparent pricing modal (POD2-204).
  *   - v2.3.0 (2026-11-14 22:35 HKT): Wired 32-Seed Arena defaults (POD2-301), 3-Tier Authentic 32-Seed AI/Wikimedia generation (POD2-302), real-time CORS-safe seed image resolution with onerror SVG fallback (POD2-303), GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion with HK PDPO/GDPR consent gate (POD2-304), automatic S/A/B/C/D Tier List population on Champion crown + HTML5 Drag-and-Drop & WCAG keyboard reordering (POD2-305), and locked $9.99/mo & $79.00/yr Creator Pro pricing disclosures (POD2-306).
+ *   - v2.4.0 (2026-11-15 10:36 HKT): Wired 3-Provider CORS Image Fetcher & 1-Tap Seed Photo Cycler (#btnLeftCyclePhoto / #btnRightCyclePhoto, POD2-401), 4 Co-Star Hero Scene Presets & Live Sliders (#posterPresetSelect / #posterPhotoScaleSlider / #posterPhotoOffsetSlider / #posterRimGlowSlider, POD2-402), 1080p/4K Tier-List Share Poster export with Robbery Fixed badges (#btnExportTierPoster / #btnExportTierPoster4k, POD2-403), and #challenge= Beat-My-Bracket Taste Compatibility Scorecard (#btnCopyChallengeLink / #challengeScorecard, POD2-404).
+ *   - v2.5.0 (2026-11-15 22:14 HKT): Wired contextual <Seed Name> <Arena Topic> photo fetching & cycling (POD2-501), removed remaining 'Classics' prompt hint (POD2-502), wired overlapping diagonal VS battle stage shockwaves (POD2-503), and wired the 8-match Round-of-32 Loser-Bracket Placement Battles & exact 2-6-8-8-8 Tier List (POD2-504).
  */
 (function () {
   'use strict';
@@ -123,6 +125,39 @@
     imgEl.src = targetSrc;
   }
 
+  /** POD2-404: Renders the Friend-vs-Friend Beat-My-Bracket Taste Compatibility Scorecard when a #challenge= is active. */
+  function renderChallengeScorecard() {
+    const box = document.getElementById('challengeScorecard');
+    if (!box) return;
+    const chall = window.VibeState.data.activeChallenge;
+    if (!chall) {
+      box.style.display = 'none';
+      box.textContent = '';
+      return;
+    }
+    const topic = window.VibeState.getActiveTopic();
+    const b = window.VibeState.getActiveBracket();
+    const tierMap = window.VibeState.data.tiers[topic.id] || {};
+    const stats = window.PackSanitizer.computeTasteCompatibility(chall, b, tierMap, topic);
+    if (!stats) {
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'flex';
+    box.textContent = '';
+
+    const header = createSafeEl('div', null, 'challenge-scorecard-header');
+    header.appendChild(createSafeEl('strong', '⚔️ Beat My Bracket Challenge vs ' + stats.challengerHandle, null));
+    header.appendChild(createSafeEl('span', 'Vibe Compatibility: ' + stats.compatibilityPct + '% (' + stats.agreedMatches + '/' + stats.comparedMatches + ' matches)', 'challenge-pct-pill'));
+    box.appendChild(header);
+
+    const grid = createSafeEl('div', null, 'challenge-meta-grid');
+    grid.appendChild(createSafeEl('div', '🏆 Challenger Crown: ' + stats.challengerChampion + ' | Your Crown: ' + stats.myChampion, null));
+    const dis = stats.biggestDisagreement;
+    grid.appendChild(createSafeEl('div', '🌶️ #1 Hot-Take Split (' + dis.roundName + '): ' + dis.matchup + ' — ' + stats.challengerHandle + ' picked ' + dis.challengerPick + ', you picked ' + dis.myPick, null));
+    box.appendChild(grid);
+  }
+
   function renderArena() {
     const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
@@ -132,6 +167,7 @@
     document.getElementById('btnUndoVote').disabled = b.history.length === 0;
     renderStreamerHud();
     updateSeedImageStatusText();
+    renderChallengeScorecard();
 
     const totalMatches = topic.items.length - 1;
     const completed = b.history.length;
@@ -146,14 +182,42 @@
       document.getElementById('matchupStage').style.display = 'none';
       document.getElementById('championStage').style.display = 'block';
       document.getElementById('championName').textContent = (b.champion.emoji || '👑') + ' ' + b.champion.name;
-      document.getElementById('championSub').textContent = 'Crowned Grand Champion of "' + topic.title + '" · Tier List Auto-Populated (S/A/B/C/D)!';
+      document.getElementById('championSub').textContent = 'Crowned Grand Champion of "' + topic.title + '" · 2-6-8-8-8 Tier List Active (S:2 · A:6 · B:8 · C:8 · D:8)!';
+
+      // Render Loser-Bracket C/D Placement Battles (POD2-504)
+      const placementBox = document.getElementById('loserPlacementStage');
+      if (placementBox) {
+        if (!Array.isArray(b.placementMatches) || !b.placementMatches.length) {
+          window.VibeState.initLoserPlacementRound(b);
+        }
+        const placements = b.placementMatches || [];
+        const nextIdx = placements.findIndex((pm) => !pm.winner);
+        const badgeEl = document.getElementById('placementBadge');
+        const statusEl = document.getElementById('placementStatusText');
+        const rowEl = document.getElementById('placementMatchRow');
+        const btnLeft = document.getElementById('btnPlacementLeft');
+        const btnRight = document.getElementById('btnPlacementRight');
+
+        if (nextIdx === -1 || !placements.length) {
+          if (badgeEl) badgeEl.textContent = '✅ All 8 C/D Loser Placement Battles Complete (Exact 2-6-8-8-8 Locked)';
+          if (statusEl) statusEl.textContent = '8 Round-of-32 placement winners promoted to C-Tier (8) and 8 placement losers assigned to D-Tier (8).';
+          if (rowEl) rowEl.style.display = 'none';
+        } else {
+          const curPm = placements[nextIdx];
+          if (badgeEl) badgeEl.textContent = curPm.roundLabel || ('C/D Tier Placement Battle ' + (nextIdx + 1) + ' of ' + placements.length);
+          if (statusEl) statusEl.textContent = 'Winner earns C-Tier (top 8 R32 survivors); loser lands in D-Tier (8):';
+          if (rowEl) rowEl.style.display = 'grid';
+          if (btnLeft) btnLeft.textContent = (curPm.left.emoji || '⚡') + ' ' + curPm.left.name + ' → C-Tier';
+          if (btnRight) btnRight.textContent = (curPm.right.emoji || '🔥') + ' ' + curPm.right.name + ' → C-Tier';
+        }
+      }
 
       const podium = document.getElementById('podiumGrid');
       podium.textContent = '';
       [
-        { label: '1st Place (Champion · S-Tier)', val: b.champion.name },
-        { label: '2nd Place (Runner-Up · S-Tier)', val: b.runnerUp ? b.runnerUp.name : '—' },
-        { label: 'Semifinalists (A-Tier)', val: b.semifinalists.length ? b.semifinalists.map((s) => s.name).join(' · ') : '—' }
+        { label: 'S-Tier (2 Seeds: Champion & Runner-Up)', val: b.champion.name + (b.runnerUp ? ' · ' + b.runnerUp.name : '') },
+        { label: 'A-Tier (6 Seeds: 2 SF + 4 QF Losers)', val: b.semifinalists.length ? b.semifinalists.map((s) => s.name).join(' · ') : 'Auto-Ranked' },
+        { label: 'B / C / D Tiers (8 · 8 · 8 Seeds)', val: '8 R16 Losers (B) · 8 R32 Placement Winners (C) · 8 R32 Losers (D)' }
       ].forEach((c) => {
         const card = createSafeEl('div', null, 'stat-card');
         card.appendChild(createSafeEl('div', c.label, 'stat-label'));
@@ -319,7 +383,12 @@
         itemsWrap.appendChild(hint);
       } else {
         matched.forEach((it) => {
+          const promoDelta = window.VibeState.getTierPromotionDelta ? window.VibeState.getTierPromotionDelta(topic.id, it.id) : 0;
           const chip = createSafeEl('span', (it.emoji || '') + ' ' + it.name, 'tier-chip');
+          if (promoDelta > 0) {
+            const robBadge = createSafeEl('span', '🔥 Robbery Fixed (+' + promoDelta + ')', 'robbery-badge');
+            chip.appendChild(robBadge);
+          }
           chip.setAttribute('draggable', 'true');
           chip.setAttribute('tabindex', '0');
           chip.setAttribute('role', 'button');
@@ -401,7 +470,12 @@
       });
 
       const currentTier = tierMap[it.id] ? ' [' + tierMap[it.id] + '-Tier]' : '';
-      pr.appendChild(createSafeEl('span', '⠿ ' + (it.emoji || '•') + ' ' + it.name + currentTier, null));
+      const promoDelta = window.VibeState.getTierPromotionDelta ? window.VibeState.getTierPromotionDelta(topic.id, it.id) : 0;
+      const rowLabelWrap = createSafeEl('span', '⠿ ' + (it.emoji || '•') + ' ' + it.name + currentTier + ' ', null);
+      if (promoDelta > 0) {
+        rowLabelWrap.appendChild(createSafeEl('span', '🔥 Robbery Fixed (+' + promoDelta + ')', 'robbery-badge'));
+      }
+      pr.appendChild(rowLabelWrap);
       const btnGroup = createSafeEl('div', null, 'tier-btn-group');
       tierDefs.forEach((t) => {
         const b = createSafeEl('button', t, 'tier-assign-btn' + (tierMap[it.id] === t ? ' selected' : ''));
@@ -482,6 +556,10 @@
       theme: window.VibeState.data.posterTheme,
       aspect: window.VibeState.data.posterAspect || '9:16',
       resolution: resMode,
+      preset: window.VibeState.data.posterPreset || 'rivals',
+      photoScale: window.VibeState.data.posterPhotoScale ?? 100,
+      photoOffset: window.VibeState.data.posterPhotoOffset ?? 0,
+      rimGlow: window.VibeState.data.posterRimGlow ?? 75,
       handle: window.VibeState.data.userHandle,
       quote: window.VibeState.data.userQuote || '',
       topHotTake: window.VibeState.getTopicTopHotTake(topic.id),
@@ -519,8 +597,9 @@
     } else if (round.length === 1) {
       b.runnerUp = loser;
       b.champion = winner;
-      // POD2-305 (FD-P0-20261114-05): Automatically populate S/A/B/C/D Tier List on Champion Crown!
-      window.VibeState.autoPopulateTiersFromBracket(topic, b);
+      // POD2-504 (FD-P0-20261115-04): Initialize 8 Round-of-32 Loser-Bracket Placement Battles & populate 2-6-8-8-8 Tier List!
+      window.VibeState.initLoserPlacementRound(b);
+      window.VibeState.autoPopulateTiers26888(topic, b);
       window.VibeAudio.win();
       window.VibeVisuals.triggerConfetti();
       window.VibeState.save();
@@ -701,13 +780,13 @@
       if (b.history.length > 0) {
         window.VibeState.autoPopulateTiersFromBracket(topic, b);
       } else {
-        // Seed-order preview distribution (2 S, 2 A, 4 B, 8 C, 16 D) if no matches played yet
+        // Exact 2-6-8-8-8 seed-order preview distribution (2 S, 6 A, 8 B, 8 C, 8 D) if no matches played yet (POD2-504)
         const previewMap = {};
         topic.items.forEach((it, idx) => {
           if (idx < 2) previewMap[it.id] = 'S';
-          else if (idx < 4) previewMap[it.id] = 'A';
-          else if (idx < 8) previewMap[it.id] = 'B';
-          else if (idx < 16) previewMap[it.id] = 'C';
+          else if (idx < 8) previewMap[it.id] = 'A';
+          else if (idx < 16) previewMap[it.id] = 'B';
+          else if (idx < 24) previewMap[it.id] = 'C';
           else previewMap[it.id] = 'D';
         });
         window.VibeState.data.tiers[topic.id] = previewMap;
@@ -889,7 +968,7 @@
   if (btnFillSample32) {
     btnFillSample32.addEventListener('click', () => {
       const titleInput = document.getElementById('customTitle');
-      const promptHint = (titleInput && titleInput.value.trim()) || 'Sci-Fi & Mecha Classics';
+      const promptHint = (titleInput && titleInput.value.trim()) || 'Sci-Fi & Mecha Masterpieces';
       const generated = window.VibeGenAI.synthesizeLocalTopic(promptHint);
       if (titleInput && !titleInput.value.trim()) titleInput.value = generated.title;
       document.getElementById('customSize').value = '32';
@@ -1216,9 +1295,186 @@
     }
   });
 
+
+  // POD2-401: 1-Tap Seed Photo Cycler on Left & Right Contender Cards
+  function wireCyclePhotoBtn(btnId, side) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const b = window.VibeState.getActiveBracket();
+      if (b.champion) return;
+      const match = b.rounds[b.currentRoundIdx][b.currentMatchIdx];
+      const contender = side === 'left' ? match.left : match.right;
+      const seedNum = side === 'left' ? (b.currentMatchIdx * 2 + 1) : (b.currentMatchIdx * 2 + 2);
+      const topic = window.VibeState.getActiveTopic();
+      const res = await window.VibeVisuals.cycleSeedPhoto(contender, seedNum, topic.title);
+      if (res) {
+        renderArena();
+        refreshPosterCanvas();
+        showToast('Cycled photo (' + res.index + '/' + res.total + ' · ' + res.source + ') for ' + contender.name + '!');
+      }
+    });
+  }
+  wireCyclePhotoBtn('btnLeftCyclePhoto', 'left');
+  wireCyclePhotoBtn('btnRightCyclePhoto', 'right');
+
+  // POD2-402: Co-Star Hero Scene Composition Presets & Live Blend Sliders
+  const posterPresetSelect = document.getElementById('posterPresetSelect');
+  if (posterPresetSelect) {
+    posterPresetSelect.addEventListener('change', (e) => {
+      window.VibeState.data.posterPreset = e.target.value;
+      window.VibeState.save();
+      refreshPosterCanvas();
+      showToast('Co-Star Hero Scene preset: ' + e.target.options[e.target.selectedIndex].text);
+    });
+  }
+
+  const scaleSlider = document.getElementById('posterPhotoScaleSlider');
+  const offsetSlider = document.getElementById('posterPhotoOffsetSlider');
+  const rimGlowSlider = document.getElementById('posterRimGlowSlider');
+  if (scaleSlider) {
+    scaleSlider.addEventListener('input', (e) => {
+      const val = Number(e.target.value);
+      window.VibeState.data.posterPhotoScale = val;
+      const lbl = document.getElementById('posterScaleVal');
+      if (lbl) lbl.textContent = val + '%';
+      refreshPosterCanvas();
+    });
+  }
+  if (offsetSlider) {
+    offsetSlider.addEventListener('input', (e) => {
+      const val = Number(e.target.value);
+      window.VibeState.data.posterPhotoOffset = val;
+      const lbl = document.getElementById('posterOffsetVal');
+      if (lbl) lbl.textContent = val + 'px';
+      refreshPosterCanvas();
+    });
+  }
+  if (rimGlowSlider) {
+    rimGlowSlider.addEventListener('input', (e) => {
+      const val = Number(e.target.value);
+      window.VibeState.data.posterRimGlow = val;
+      const lbl = document.getElementById('posterRimGlowVal');
+      if (lbl) lbl.textContent = val + '%';
+      refreshPosterCanvas();
+    });
+  }
+
+  // POD2-403: 1080p & 4K 32-Seed Tier-List Share Poster Exporter with "🔥 Robbery Fixed (+N)" Badges
+  function exportTierListPoster(resolutionMode) {
+    const topic = window.VibeState.getActiveTopic();
+    const b = window.VibeState.getActiveBracket();
+    let tierMap = window.VibeState.data.tiers[topic.id] || {};
+    if (!Object.keys(tierMap).length) {
+      tierMap = window.VibeState.autoPopulateTiersFromBracket(topic, b);
+    }
+    const autoTierMap = (window.VibeState.data.autoTiers && window.VibeState.data.autoTiers[topic.id]) || {};
+    const offscreen = document.createElement('canvas');
+    window.VibePoster.renderTierPoster(offscreen, topic, b, tierMap, autoTierMap, {
+      theme: window.VibeState.data.posterTheme || 'cyber',
+      resolution: resolutionMode
+    });
+    const link = document.createElement('a');
+    link.download = resolutionMode === '4k'
+      ? 'VibeBracket_4K_TierList_Poster_NetHustle.png'
+      : 'VibeBracket_TierList_Poster_NetHustle.png';
+    link.href = offscreen.toDataURL('image/png');
+    link.click();
+    showToast((resolutionMode === '4k' ? '4K (2160×2700)' : '1080×1350') + ' Tier-List Verdict Poster PNG downloaded!');
+  }
+
+  const btnExportTierPoster = document.getElementById('btnExportTierPoster');
+  if (btnExportTierPoster) {
+    btnExportTierPoster.addEventListener('click', () => exportTierListPoster('1x'));
+  }
+  const btnExportTierPoster4k = document.getElementById('btnExportTierPoster4k');
+  if (btnExportTierPoster4k) {
+    btnExportTierPoster4k.addEventListener('click', () => exportTierListPoster('4k'));
+  }
+
+  // POD2-404: Beat-My-Bracket #challenge= Link Generator & Friend-vs-Friend Compatibility Preview
+  const btnCopyChallengeLink = document.getElementById('btnCopyChallengeLink');
+  if (btnCopyChallengeLink) {
+    btnCopyChallengeLink.addEventListener('click', () => {
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      const tierMap = window.VibeState.data.tiers[topic.id] || {};
+      const handle = window.VibeState.data.userHandle || '@Creator';
+      const encoded = window.PackSanitizer.encodeChallengeHash(topic, b, tierMap, handle);
+      if (!encoded) {
+        showToast('Could not encode Beat-My-Bracket challenge link.');
+        return;
+      }
+      const url = window.location.origin + window.location.pathname + '#challenge=' + encoded;
+      copyTextSafe(url, '⚔️ Beat-My-Bracket #challenge= link copied! Send to a friend to compare Vibe Compatibility %.');
+    });
+  }
+
+  const btnSimulateChallenge = document.getElementById('btnSimulateChallenge');
+  if (btnSimulateChallenge) {
+    btnSimulateChallenge.addEventListener('click', () => {
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      // Create a deterministic rival challenge bitstring (alternating some picks) so the user can preview the live scorecard immediately
+      const rivalBits = Array.from({ length: Math.max(1, topic.items.length - 1) }, (_, idx) => (idx % 3 === 0 ? '1' : '0')).join('');
+      const rivalChamp = topic.items[Math.min(1, topic.items.length - 1)];
+      window.VibeState.data.activeChallenge = {
+        topic,
+        bits: rivalBits,
+        champId: rivalChamp.id,
+        champName: rivalChamp.name,
+        tiers: { [rivalChamp.id]: 'S' },
+        handle: '@RivalChamp'
+      };
+      renderChallengeScorecard();
+      showToast('⚔️ Loaded Rival Challenge Scorecard! Play matches to watch live Vibe Compatibility %.');
+    });
+  }
+
+
+  // POD2-504: Wire Round-of-32 Loser-Bracket Placement Battles (C-Tier vs D-Tier)
+  function handlePlacementVote(side) {
+    const topic = window.VibeState.getActiveTopic();
+    const b = window.VibeState.getActiveBracket();
+    if (!b.champion) return;
+    if (!Array.isArray(b.placementMatches) || !b.placementMatches.length) {
+      window.VibeState.initLoserPlacementRound(b);
+    }
+    const nextIdx = b.placementMatches.findIndex((pm) => !pm.winner);
+    if (nextIdx === -1) return;
+    const winner = window.VibeState.resolvePlacementMatch(topic, b, nextIdx, side);
+    window.VibeAudio.tap();
+    renderAll();
+    if (winner) {
+      showToast('Promoted "' + winner.name + '" to C-Tier (Placement Battle ' + (nextIdx + 1) + '/8)!');
+    }
+  }
+
+  const btnPlacementLeft = document.getElementById('btnPlacementLeft');
+  if (btnPlacementLeft) {
+    btnPlacementLeft.addEventListener('click', () => handlePlacementVote('left'));
+  }
+  const btnPlacementRight = document.getElementById('btnPlacementRight');
+  if (btnPlacementRight) {
+    btnPlacementRight.addEventListener('click', () => handlePlacementVote('right'));
+  }
+  const btnAutoResolvePlacements = document.getElementById('btnAutoResolvePlacements');
+  if (btnAutoResolvePlacements) {
+    btnAutoResolvePlacements.addEventListener('click', () => {
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      window.VibeState.autoResolveAllPlacementMatches(topic, b);
+      window.VibeAudio.win();
+      renderAll();
+      showToast('⚡ All 8 C/D Loser Placement Battles resolved — Exact 2-6-8-8-8 Tier List locked!');
+    });
+  }
+
   // Boot & IndexedDB Vault Hydration
   window.VibeState.load();
   if (document.getElementById('posterAspectSelect')) document.getElementById('posterAspectSelect').value = window.VibeState.data.posterAspect || '9:16';
+  if (document.getElementById('posterPresetSelect')) document.getElementById('posterPresetSelect').value = window.VibeState.data.posterPreset || 'rivals';
   document.getElementById('brandVersionLabel').textContent = 'by NetHustle · v' + window.VibeVersion.VERSION;
   document.getElementById('btnToggleSfx').textContent = window.VibeAudio.isEnabled() ? 'SFX: ON' : 'SFX: OFF';
   document.getElementById('posterThemeSelect').value = window.VibeState.data.posterTheme || 'cyber';

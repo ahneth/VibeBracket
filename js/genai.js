@@ -1,4 +1,4 @@
-// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
+// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
 /**
  * File: js/genai.js
  * Description: 32-Seed GenAI Topic Studio & Real-Time Entity Synthesizer (Tier 1: OpenRouter BYOK 32-Seed LLM JSON; Tier 2: Live Wikipedia/Wikimedia REST Entity Resolution; Tier 3: 32-Seed Multi-Domain Curated Knowledge Graphs) with automatic real-time seed image lookup.
@@ -9,6 +9,8 @@
  *   - v2.1.0 (2026-11-13 19:29 HKT): Wrapped OpenRouter fetch call in explicit try/catch.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Sanitized AI-generated topics through PackSanitizer.sanitizeTopicPayload().
  *   - v2.3.0 (2026-11-14 22:35 HKT): Executed POD2-301 (32-Seed standardization across all TRENDING_PACKS and DOMAIN_BANKS), POD2-302 (deleted generic suffix templates and built Ronan's 3-Tier 32-Seed AI + Live Wikipedia/Wikimedia Entity Synthesizer), and POD2-303 (automatic real-time seed image resolution on topic generation).
+ *   - v2.4.0 (2026-11-15 10:36 HKT): Synchronized build metadata and v2.4.0 multi-provider seed image & challenge compatibility integration.
+ *   - v2.5.0 (2026-11-15 22:14 HKT): Executed POD2-502 (FD-P0-20261115-02) scrubbing all remaining 'Classic'/'Legend' tokens from TRENDING_PACKS and enforcing domain-strict 32-seed synthesis.
  */
 window.VibeGenAI = (() => {
   const TARGET_SEED_COUNT = 32;
@@ -56,7 +58,7 @@ window.VibeGenAI = (() => {
     },
     {
       id: 'pack-hk-drinks',
-      label: '🧋 HK Café & Tea Classics (32 Seeds)',
+      label: '🧋 HK Cha Chaan Teng & Tea (32 Seeds)',
       title: 'Iconic Hong Kong Cha Chaan Teng Drinks & Desserts',
       subtitle: 'GenAI Trending Pack · 32 authentic Hong Kong café beverages & sweet soups',
       items: [
@@ -64,10 +66,10 @@ window.VibeGenAI = (() => {
         { id: 'd2', name: 'Iced Hong Kong Lemon Tea (Dong Ning Cha)', tag: '4 Fresh Lemon Slices', emoji: '🍋' },
         { id: 'd3', name: 'Yuenyeung (Coffee + Milk Tea)', tag: 'Signature HK Fusion', emoji: '☕' },
         { id: 'd4', name: 'Red Bean Ice (Hung Dau Bing)', tag: 'Sweet Azuki + Evaporated Milk', emoji: '🍧' },
-        { id: 'd5', name: 'Iced Ovaltine (Dong O-Wah-Tin)', tag: 'Malted Cocoa Classic', emoji: '🥛' },
+        { id: 'd5', name: 'Iced Ovaltine (Dong O-Wah-Tin)', tag: 'Malted Cocoa Staple', emoji: '🥛' },
         { id: 'd6', name: 'Salted Lemon 7-Up (Ham Ning Chat)', tag: 'Preserved Lime + Soda', emoji: '🥤' },
         { id: 'd7', name: 'Iced Horlicks (Dong Ho-Lik)', tag: 'Creamy Wheat Malt', emoji: '🌾' },
-        { id: 'd8', name: 'Mango Pomelo Sago (Yeung Ji Gam Lo)', tag: 'Honeymoon Dessert Classic', emoji: '🥭' },
+        { id: 'd8', name: 'Mango Pomelo Sago (Yeung Ji Gam Lo)', tag: 'Honeymoon Dessert Signature', emoji: '🥭' },
         { id: 'd9', name: 'Hot Lemon Ribena', tag: 'Blackcurrant Vitamin C', emoji: '🍇' },
         { id: 'd10', name: 'Watercress Honey with Lemon (Sai Yeung Choi Mat)', tag: 'Soothing Herbal Drink', emoji: '🌿' },
         { id: 'd11', name: 'Almond Milk Tea (Hang Yan Cha)', tag: 'Ground Southern Almonds', emoji: '🤍' },
@@ -84,7 +86,7 @@ window.VibeGenAI = (() => {
         { id: 'd22', name: 'Cane Juice & Imperata Root (Juk Jeuk Mao Gan)', tag: 'Kung Wo Herbal Cooler', emoji: '🎋' },
         { id: 'd23', name: 'Cantonese Five-Flower Herbal Tea (Ng Fa Cha)', tag: 'Cooling Chrysanthemum Blend', emoji: '🌼' },
         { id: 'd24', name: '24-Herb Bitter Tea (Ya Sei Mei)', tag: 'Traditional HK Apothecary', emoji: '🍵' },
-        { id: 'd25', name: 'Vitasoy Classic Soy Milk (Glass Bottle)', tag: 'Warm HK Childhood Staple', emoji: '🍾' },
+        { id: 'd25', name: 'Vitasoy Soy Milk (Warm Glass Bottle)', tag: 'Warm HK Childhood Staple', emoji: '🍾' },
         { id: 'd26', name: 'Vita Lemon Tea Packet (VLT)', tag: '渋得起 Iconic Carton', emoji: '🧃' },
         { id: 'd27', name: 'Children Yuenyeung (Ovaltine + Horlicks)', tag: 'Caffeine-Free Malt Blend', emoji: '🧒' },
         { id: 'd28', name: 'Iced Lemon Coffee (Dong Ning Fei)', tag: 'Citrus Roast Espresso', emoji: '🍋' },
@@ -98,7 +100,7 @@ window.VibeGenAI = (() => {
       id: 'pack-gundam-suits',
       label: '🛡️ Iconic Mecha Units (32 Seeds)',
       title: 'Ultimate Gundam & Mecha Mobile Suits',
-      subtitle: 'GenAI Trending Pack · 32 legendary mobile suits across Universal Century & beyond',
+      subtitle: 'GenAI Trending Pack · 32 iconic mobile suits across Universal Century & beyond',
       items: [
         { id: 'ms1', name: 'RX-78-2 Gundam', tag: 'Amuro Ray · UC 0079', emoji: '🤖' },
         { id: 'ms2', name: 'MS-06S Char Zaku II', tag: 'Char Aznable · Red Comet', emoji: '☄️' },

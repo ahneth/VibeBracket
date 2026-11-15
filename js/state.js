@@ -1,4 +1,4 @@
-// Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT
+// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -9,6 +9,8 @@
  *   - v2.1.0 (2026-11-13 19:29 HKT): Synced vibetrack_custom_images storage alias per PRD Feature 1 and added match vote tally tracking for Spice Meter cards.
  *   - v2.2.0 (2026-11-14 10:17 HKT): Wired PackSanitizer.decodeShareTopic() & sanitizeTopicPayload() (closing CAR-20261114-01 & CAR-20261114-02), wired NetHustlePhotoStore IndexedDB vault (POD2-201), and added streamerMode & posterResolution state fields.
  *   - v2.3.0 (2026-11-14 22:35 HKT): Standardized all STARTER_TOPICS to 32 authentic seeds (5 rounds, 31 matches) per POD2-301 (FD-P0-20261114-01) and added autoPopulateTiersFromBracket() mapping tournament elimination rounds to S/A/B/C/D tiers (2/2/4/8/16 seeds) per POD2-305 (FD-P0-20261114-05).
+ *   - v2.4.0 (2026-11-15 10:36 HKT): Added autoTiers snapshot & getTierPromotionDelta() for Robbery Fixed badges (POD2-403), posterPreset/scale/offset/rimGlow sliders (POD2-402), and #challenge= activeChallenge hydration (POD2-404).
+ *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-502 historical generic-suffix state scrubbing in load() and starter packs, and POD2-504 (FD-P0-20261115-04) exact 2-6-8-8-8 Tier Assignment (S:2, A:6, B:8, C:8, D:8) + 8-match Round-of-32 Loser-Bracket Placement Battles.
  */
 window.VibeState = (() => {
   const PHOTO_STORAGE_KEY = 'vibetrack_custom_images';
@@ -19,7 +21,7 @@ window.VibeState = (() => {
       title: 'Greatest Manga Series (32-Seed Arena)',
       subtitle: '32 iconic tankōbon masterpieces — 31 matchups across 5 rounds to crown your GOAT.',
       items: [
-        { id: 'm1', name: 'Dragon Ball', tag: 'Shōnen Legend', emoji: '🐉' },
+        { id: 'm1', name: 'Dragon Ball', tag: 'Shōnen Pioneer', emoji: '🐉' },
         { id: 'm2', name: 'One Piece', tag: 'Grand Line Epic', emoji: '🏴‍☠️' },
         { id: 'm3', name: 'Slam Dunk', tag: 'Basketball GOAT', emoji: '🏀' },
         { id: 'm4', name: 'Vagabond', tag: 'Samurai Seinen', emoji: '⚔️' },
@@ -42,7 +44,7 @@ window.VibeState = (() => {
         { id: 'm21', name: 'Death Note', tag: 'Mind Games', emoji: '📓' },
         { id: 'm22', name: 'Haikyu!!', tag: 'Volleyball Peak', emoji: '🏐' },
         { id: 'm23', name: 'Initial D', tag: 'Touge Drifting', emoji: '🚗' },
-        { id: 'm24', name: 'Ashita no Joe', tag: 'Boxing Classic', emoji: '🥊' },
+        { id: 'm24', name: 'Ashita no Joe', tag: 'Boxing Masterpiece', emoji: '🥊' },
         { id: 'm25', name: '20th Century Boys', tag: 'Sci-Fi Mystery', emoji: '👁️' },
         { id: 'm26', name: 'Pluto', tag: 'Astro Boy Noir', emoji: '🦾' },
         { id: 'm27', name: 'Dandadan', tag: 'Occult Sci-Fi', emoji: '🛸' },
@@ -56,7 +58,7 @@ window.VibeState = (() => {
     {
       id: 'anime-openings',
       title: 'Top Anime & J-Pop Anthems (32-Seed Arena)',
-      subtitle: '32 legendary anime & J-Pop tracks — 31 head-to-head soundchecks.',
+      subtitle: '32 iconic anime & J-Pop tracks — 31 head-to-head soundchecks.',
       items: [
         { id: 'a1', name: 'Idol — YOASOBI', tag: 'Oshi no Ko OP', emoji: '🌟' },
         { id: 'a2', name: 'KICK BACK — Kenshi Yonezu', tag: 'Chainsaw Man OP', emoji: '⚡' },
@@ -127,7 +129,7 @@ window.VibeState = (() => {
         { id: 'f28', name: 'Beef Brisket in Clear Broth Noodles', tag: 'Chu Hou Radish', emoji: '🥩' },
         { id: 'f29', name: 'Chiu Chow Marinated Goose Slices', tag: 'Master Soy Brine', emoji: '🦢' },
         { id: 'f30', name: 'Dry-Fried Beef Ho Fun', tag: 'Supreme Wok Hei', emoji: '🔥' },
-        { id: 'f31', name: 'Salted Fish & Chicken Fried Rice', tag: 'Cantonese Classic', emoji: '🍳' },
+        { id: 'f31', name: 'Salted Fish & Chicken Fried Rice', tag: 'Cantonese Wok Staple', emoji: '🍳' },
         { id: 'f32', name: 'Mango Pomelo Sago (Yeung Ji Gam Lo)', tag: 'Chilled Dessert', emoji: '🥭' }
       ]
     }
@@ -138,11 +140,17 @@ window.VibeState = (() => {
     customTopics: [],
     brackets: {},
     tiers: {},
+    autoTiers: {},
+    activeChallenge: null,
     customPhotos: {},
     hotTakes: {},
     posterTheme: 'cyber',
     posterAspect: '9:16',
     posterResolution: '1x',
+    posterPreset: 'rivals',
+    posterPhotoScale: 100,
+    posterPhotoOffset: 0,
+    posterRimGlow: 75,
     posterFusionMode: 'canvas-fusion',
     posterGenAiConsent: false,
     streamerMode: false,
@@ -160,6 +168,9 @@ window.VibeState = (() => {
           Object.assign(state, parsed);
           // Always reset external biometric consent to false on reload per HK PDPO / GDPR
           state.posterGenAiConsent = false;
+          if (window.PackSanitizer && window.PackSanitizer.purgeLegacyGenericState) {
+            window.PackSanitizer.purgeLegacyGenericState(state);
+          }
         }
       }
       const rawPhotos = localStorage.getItem(PHOTO_STORAGE_KEY);
@@ -175,13 +186,25 @@ window.VibeState = (() => {
 
     try {
       if (window.location.hash && window.PackSanitizer) {
-        const shared = window.PackSanitizer.decodeShareTopic(window.location.hash);
-        if (shared) {
-          if (!state.customTopics.find((t) => t.id === shared.id)) {
-            state.customTopics.push(shared);
+        if (window.location.hash.startsWith('#challenge=')) {
+          const chall = window.PackSanitizer.decodeChallengeHash(window.location.hash);
+          if (chall && chall.topic) {
+            if (!STARTER_TOPICS.find((t) => t.id === chall.topic.id) && !state.customTopics.find((t) => t.id === chall.topic.id)) {
+              state.customTopics.push(chall.topic);
+            }
+            state.activeTopicId = chall.topic.id;
+            state.activeChallenge = chall;
+            window.AppLogger.info('Loaded Beat-My-Bracket challenge from ' + chall.handle + ' on "' + chall.topic.title + '"');
           }
-          state.activeTopicId = shared.id;
-          window.AppLogger.info('Loaded verified shared bracket: ' + shared.title);
+        } else {
+          const shared = window.PackSanitizer.decodeShareTopic(window.location.hash);
+          if (shared) {
+            if (!state.customTopics.find((t) => t.id === shared.id)) {
+              state.customTopics.push(shared);
+            }
+            state.activeTopicId = shared.id;
+            window.AppLogger.info('Loaded verified shared bracket: ' + shared.title);
+          }
         }
       }
     } catch (e) {
@@ -229,7 +252,9 @@ window.VibeState = (() => {
       history: [],
       champion: null,
       runnerUp: null,
-      semifinalists: []
+      semifinalists: [],
+      placementMatches: [],
+      currentPlacementIdx: 0
     };
   }
 
@@ -252,39 +277,150 @@ window.VibeState = (() => {
    *   - C-Tier: Round of 16 losers (round with 8 matches -> 8 items)
    *   - D-Tier: Round of 32 losers (round with 16 matches -> 16 items)
    */
-  function autoPopulateTiersFromBracket(topic, bracket) {
+  /**
+   * FD-P0-20261115-04 (POD2-504): Initializes the 8-match Loser-Bracket Placement Round
+   * pairing the 16 Round-of-32 losers so the 8 placement winners earn C-Tier (8)
+   * and the 8 placement losers land in D-Tier (8).
+   */
+  function initLoserPlacementRound(bracket) {
+    if (!bracket) return [];
+    const r32Matches = (bracket.rounds && bracket.rounds[0]) ? bracket.rounds[0] : [];
+    const r32Losers = r32Matches
+      .map((m) => (m && m.winner ? (m.winner.id === m.left.id ? m.right : m.left) : null))
+      .filter(Boolean);
+    const placementMatches = [];
+    for (let i = 0; i + 1 < r32Losers.length; i += 2) {
+      placementMatches.push({
+        id: 'placement_cd_' + (i / 2),
+        roundLabel: 'C/D Tier Placement Battle ' + ((i / 2) + 1) + ' of ' + Math.floor(r32Losers.length / 2),
+        left: r32Losers[i],
+        right: r32Losers[i + 1],
+        winner: null
+      });
+    }
+    bracket.placementMatches = placementMatches;
+    bracket.currentPlacementIdx = 0;
+    return placementMatches;
+  }
+
+  /**
+   * FD-P0-20261115-04 (POD2-504): Populates the exact 2-6-8-8-8 Tier List for 32-seed brackets:
+   *   - S-Tier: 2 (Champion + Runner-Up)
+   *   - A-Tier: 6 (2 Semifinalists + 4 Quarterfinalists)
+   *   - B-Tier: 8 (8 Round-of-16 Losers)
+   *   - C-Tier: 8 (8 Winners of Round-of-32 Loser Placement Battles)
+   *   - D-Tier: 8 (8 Losers of Round-of-32 Loser Placement Battles)
+   */
+  function autoPopulateTiers26888(topic, bracket) {
     if (!topic || !bracket || !Array.isArray(bracket.rounds)) return {};
     const tierMap = {};
     const totalRounds = bracket.rounds.length;
 
-    bracket.rounds.forEach((roundMatches, rIdx) => {
-      const roundsFromFinal = (totalRounds - 1) - rIdx;
-      let loserTier = 'D';
-      if (roundsFromFinal === 0) loserTier = 'S';      // Runner-Up in Grand Final -> S
-      else if (roundsFromFinal === 1) loserTier = 'A'; // Semifinalist -> A
-      else if (roundsFromFinal === 2) loserTier = 'B'; // Quarterfinalist -> B
-      else if (roundsFromFinal === 3) loserTier = 'C'; // Round of 16 -> C
-      else loserTier = 'D';                            // Round of 32 -> D
+    if (bracket.champion && bracket.champion.id) tierMap[bracket.champion.id] = 'S';
+    if (bracket.runnerUp && bracket.runnerUp.id) tierMap[bracket.runnerUp.id] = 'S';
 
-      roundMatches.forEach((m) => {
+    if (totalRounds >= 5 || topic.items.length === 32) {
+      // A-Tier (6): 2 Semifinalists (Round 3) + 4 Quarterfinalists (Round 2)
+      [...(bracket.rounds[3] || []), ...(bracket.rounds[2] || [])].forEach((m) => {
         if (!m || !m.winner) return;
         const loser = m.winner.id === m.left.id ? m.right : m.left;
-        if (loser && loser.id) {
-          tierMap[loser.id] = loserTier;
-        }
+        if (loser && loser.id) tierMap[loser.id] = 'A';
       });
-    });
 
-    if (bracket.champion && bracket.champion.id) {
-      tierMap[bracket.champion.id] = 'S';
-    }
-    if (bracket.runnerUp && bracket.runnerUp.id) {
-      tierMap[bracket.runnerUp.id] = 'S';
+      // B-Tier (8): 8 Round-of-16 Losers (Round 1)
+      (bracket.rounds[1] || []).forEach((m) => {
+        if (!m || !m.winner) return;
+        const loser = m.winner.id === m.left.id ? m.right : m.left;
+        if (loser && loser.id) tierMap[loser.id] = 'B';
+      });
+
+      // C-Tier (8) & D-Tier (8): From the 8 Round-of-32 Loser-Bracket Placement Battles
+      const placements = (Array.isArray(bracket.placementMatches) && bracket.placementMatches.length > 0)
+        ? bracket.placementMatches
+        : initLoserPlacementRound(bracket);
+      placements.forEach((pm) => {
+        if (!pm || !pm.left || !pm.right) return;
+        const winner = pm.winner || pm.left;
+        const loser = (winner && winner.id === pm.left.id) ? pm.right : pm.left;
+        if (winner && winner.id) tierMap[winner.id] = 'C';
+        if (loser && loser.id) tierMap[loser.id] = 'D';
+      });
+    } else {
+      // Fallback proportional distribution for 4/8/16-seed custom brackets
+      bracket.rounds.forEach((roundMatches, rIdx) => {
+        const roundsFromFinal = (totalRounds - 1) - rIdx;
+        let loserTier = 'D';
+        if (roundsFromFinal === 0) loserTier = 'S';
+        else if (roundsFromFinal <= 2) loserTier = 'A';
+        else if (roundsFromFinal === 3) loserTier = 'B';
+        else loserTier = 'C';
+        roundMatches.forEach((m) => {
+          if (!m || !m.winner) return;
+          const loser = m.winner.id === m.left.id ? m.right : m.left;
+          if (loser && loser.id) tierMap[loser.id] = loserTier;
+        });
+      });
     }
 
-    state.tiers[topic.id] = tierMap;
+    if (!state.autoTiers) state.autoTiers = {};
+    state.autoTiers[topic.id] = { ...tierMap };
+    state.tiers[topic.id] = { ...tierMap };
     save();
     return tierMap;
+  }
+
+  function autoPopulateTiersFromBracket(topic, bracket) {
+    return autoPopulateTiers26888(topic, bracket);
+  }
+
+  /** Records a user vote on a C/D Loser-Bracket Placement Battle and refreshes the 2-6-8-8-8 Tier List (POD2-504). */
+  function resolvePlacementMatch(topic, bracket, matchIdx, side) {
+    if (!bracket) return null;
+    if (!Array.isArray(bracket.placementMatches) || !bracket.placementMatches.length) {
+      initLoserPlacementRound(bracket);
+    }
+    const pm = bracket.placementMatches[matchIdx];
+    if (!pm) return null;
+    pm.winner = side === 'right' ? pm.right : pm.left;
+    if (matchIdx + 1 < bracket.placementMatches.length) {
+      bracket.currentPlacementIdx = matchIdx + 1;
+    } else {
+      bracket.currentPlacementIdx = bracket.placementMatches.length;
+    }
+    autoPopulateTiers26888(topic, bracket);
+    return pm.winner;
+  }
+
+  /** Auto-resolves all remaining undecided C/D Loser-Bracket Placement Battles in 1 tap (POD2-504). */
+  function autoResolveAllPlacementMatches(topic, bracket) {
+    if (!bracket) return {};
+    if (!Array.isArray(bracket.placementMatches) || !bracket.placementMatches.length) {
+      initLoserPlacementRound(bracket);
+    }
+    bracket.placementMatches.forEach((pm, idx) => {
+      if (!pm.winner) {
+        pm.winner = (idx % 2 === 0) ? pm.left : pm.right;
+      }
+    });
+    bracket.currentPlacementIdx = bracket.placementMatches.length;
+    return autoPopulateTiers26888(topic, bracket);
+  }
+
+  /**
+   * POD2-403: Calculates how many tiers (+1 to +4) a user manually promoted a contender
+   * above its initial bracket elimination tier (autoTiers) to award "🔥 Robbery Fixed (+N)" badges.
+   */
+  function getTierPromotionDelta(topicId, itemId) {
+    const order = ['S', 'A', 'B', 'C', 'D'];
+    const autoMap = (state.autoTiers && state.autoTiers[topicId]) || {};
+    const curMap = (state.tiers && state.tiers[topicId]) || {};
+    const origTier = autoMap[itemId];
+    const nowTier = curMap[itemId];
+    if (!origTier || !nowTier) return 0;
+    const origIdx = order.indexOf(origTier);
+    const nowIdx = order.indexOf(nowTier);
+    if (origIdx === -1 || nowIdx === -1) return 0;
+    return origIdx > nowIdx ? (origIdx - nowIdx) : 0;
   }
 
   /** Moves or assigns a contender item to a specific tier ('S', 'A', 'B', 'C', 'D', or null for unranked pool). */
@@ -381,7 +517,12 @@ window.VibeState = (() => {
     getActiveTopic,
     initBracket,
     getActiveBracket,
+    initLoserPlacementRound,
+    autoPopulateTiers26888,
     autoPopulateTiersFromBracket,
+    resolvePlacementMatch,
+    autoResolveAllPlacementMatches,
+    getTierPromotionDelta,
     setItemTier,
     addTopic,
     setContenderPhoto,
