@@ -1,4 +1,4 @@
-<!-- Version: 2.2.0 | Last Modified: 2026-11-14 10:17 HKT -->
+<!-- Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT -->
 <!--
   File: index.html
   Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
@@ -9,6 +9,7 @@
     - v2.0.0 (2026-11-13 17:55 HKT): Track A build with custom contender photos, Versus Clash transitions, Pan/Zoom Bracket Tree, Spice Meter, and 9:16 & 1:1 viral posters.
     - v2.1.0 (2026-11-13 19:29 HKT): Fixed nested <button> markup (contender-card-wrap), added drag-and-drop contender photo support, 4/8/16/32-seed builder options, mobile pinch-to-zoom & touch pan, and compiled standalone HTML bundle.
     - v2.2.0 (2026-11-14 10:17 HKT): Integrated js/photoStore.js (IndexedDB vault, POD2-201) and js/packSanitizer.js (closing CAR-20261114-01 & CAR-20261114-02, POD2-205), added Live Streamer HUD & keyboard shortcuts (POD2-202), JSON/CSV Pack Import & Export (POD2-203), and 4K Pro Poster Export (POD2-204).
+    - v2.3.0 (2026-11-14 22:35 HKT): Standardized 32-Seed Arena (POD2-301), 3-Tier Authentic 32-Seed AI & Live Wikimedia Synthesizer (POD2-302), Real-Time Seed Image Lookup with CORS Canvas Protection (POD2-303), GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion + HK PDPO/GDPR Consent (POD2-304), Auto-Populated S/A/B/C/D Tier List + HTML5 Drag-and-Drop (POD2-305), and $9.99/mo & $79.00/yr Creator Pro Pricing Lock (POD2-306).
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -30,7 +31,7 @@
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.2.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.3.0</span>
         </div>
       </div>
 
@@ -74,10 +75,10 @@
 
       <div class="card glass-card">
         <div class="arena-meta">
-          <span class="round-badge" id="roundBadge">Quarterfinals</span>
+          <span class="round-badge" id="roundBadge">Round of 32</span>
           <div class="progress-wrap">
             <div class="progress-label">
-              <span id="matchCounter">Match 1 of 7</span>
+              <span id="matchCounter">Match 1 of 31</span>
               <span id="progressPct">0%</span>
             </div>
             <div class="progress-bar">
@@ -88,6 +89,10 @@
 
         <h2 id="arenaBracketTitle" class="section-heading"></h2>
         <p id="arenaBracketSubtitle" class="section-sub"></p>
+        <div class="seed-img-status-bar" id="seedImgStatusBar">
+          <span id="seedImgStatusText">🖼️ Real-Time Seed Images: Ready (32-Seed Arena · Wikimedia / Google Image CORS Pipeline)</span>
+          <button type="button" class="btn btn-sm" id="btnFetchSeedImages" title="Fetch real-time photographs for all 32 seeds">🔍 Fetch Live Seed Photos</button>
+        </div>
 
         <div id="matchupStage">
           <div class="matchup-grid">
@@ -148,6 +153,7 @@
             <div class="champion-sub" id="championSub"></div>
             <div class="btn-cluster" style="justify-content:center;">
               <button type="button" class="btn btn-primary" id="btnGoPoster">Bake Photo Into Viral Poster</button>
+              <button type="button" class="btn btn-primary" id="btnGoTiersFromChampion">Review Auto-Ranked Tier List</button>
               <button type="button" class="btn" id="btnCopySummary">Copy Results</button>
             </div>
           </div>
@@ -188,10 +194,13 @@
       <div class="card glass-card">
         <div class="arena-meta">
           <div>
-            <h2 class="section-heading" id="tierTitle">Tier List Mode</h2>
-            <p class="section-sub">Assign contenders to S, A, B, C, or D tier. Syncs live to your Share Poster.</p>
+            <h2 class="section-heading" id="tierTitle">Tier List Mode (Auto-Ranked &amp; Drag-and-Drop)</h2>
+            <p class="section-sub" id="tierSubtitle">Automatically populates S/A/B/C/D tiers from your 32-seed tournament outcomes—drag and drop any chip across rows (or tap S–D buttons) to rearrange!</p>
           </div>
-          <button type="button" class="btn btn-sm" id="btnClearTiers">Clear Tiers</button>
+          <div class="btn-cluster">
+            <button type="button" class="btn btn-sm btn-primary" id="btnAutoRankTiers">⚡ Auto-Rank from Bracket</button>
+            <button type="button" class="btn btn-sm" id="btnClearTiers">Clear Tiers</button>
+          </div>
         </div>
 
         <div class="tier-rows" id="tierRows"></div>
@@ -255,10 +264,10 @@
             <div class="form-group">
               <label class="form-label" for="customSize">Bracket Size</label>
               <select class="select" id="customSize">
-                <option value="4">4 Contenders (3 Matches)</option>
-                <option value="8" selected>8 Contenders (7 Matches)</option>
+                <option value="32" selected>32 Contenders (31 Matches — Standard Arena)</option>
                 <option value="16">16 Contenders (15 Matches)</option>
-                <option value="32">32 Contenders (31 Matches)</option>
+                <option value="8">8 Contenders (7 Matches)</option>
+                <option value="4">4 Contenders (3 Matches)</option>
               </select>
             </div>
 
@@ -269,6 +278,7 @@
 
             <div class="btn-cluster">
               <button type="submit" class="btn btn-primary">Launch Bracket</button>
+              <button type="button" class="btn" id="btnFillSample32">Auto-Fill 32 Contenders</button>
               <button type="button" class="btn" id="btnExportBracketLink">Copy Share Link</button>
             </div>
           </form>
@@ -294,15 +304,30 @@
             <canvas id="posterCanvas" width="1080" height="1920"></canvas>
           </div>
           <div>
-            <div class="badge-pill">Viral Brand Engine</div>
-            <h2 class="section-heading">Photo-Baked Winner Poster</h2>
+            <div class="badge-pill">GenAI Co-Star Hero Studio</div>
+            <h2 class="section-heading">GenAI Photo-Merged Winner Poster</h2>
             <p class="section-sub" style="margin-bottom:1rem;">
-              Upload your selfie, avatar, or winner photo—baked locally right into your Champion spotlight alongside the <strong>VibeBracket Arena · by NETHUSTLE</strong> brand!
+              Merge your uploaded photo/selfie directly with the winning contender into a unified <strong>Championship Hero Scene</strong> alongside the <strong>VibeBracket Arena · by NETHUSTLE</strong> brand!
             </p>
 
             <div class="form-group">
-              <label class="form-label" for="posterPhotoInput">1. Bake Your Photo Into Winner Spotlight (100% Local)</label>
+              <label class="form-label" for="posterPhotoInput">1. Upload Your Photo / Selfie for Winner Scene Fusion</label>
               <input class="input" id="posterPhotoInput" type="file" accept="image/*" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="posterFusionModeSelect">1b. Photo-Winner Fusion Engine</label>
+              <select class="select" id="posterFusionModeSelect">
+                <option value="canvas-fusion" selected>Smart Canvas Co-Star Scene Fusion (100% On-Device · $0 Burn)</option>
+                <option value="genai-fusion">Multimodal GenAI Co-Star Scene Synthesis (OpenRouter BYOK)</option>
+              </select>
+            </div>
+
+            <div class="consent-check-wrap">
+              <input type="checkbox" id="posterGenAiConsentCheck" />
+              <label for="posterGenAiConsentCheck">
+                <strong>HK PDPO (Cap. 486) &amp; GDPR Biometric Consent:</strong> Keep unchecked for 100% local on-device Smart Canvas scene fusion. Check only if you opt in to sending your prompt/photo metadata to your configured OpenRouter BYOK endpoint via <em>Run GenAI Co-Star Fusion</em>.
+              </label>
             </div>
 
             <div class="form-group">
@@ -335,6 +360,7 @@
             </div>
 
             <div class="btn-cluster-col">
+              <button type="button" class="btn btn-primary" id="btnRunPosterGenAiFusion">✨ Run GenAI Co-Star Scene Fusion</button>
               <button type="button" class="btn btn-primary" id="btnDownloadPoster">Download 1080×1350 PNG Poster</button>
               <button type="button" class="btn btn-primary" id="btnDownloadPoster4k">Download 4K Pro Poster (2160p)</button>
               <button type="button" class="btn" id="btnSharePoster">Share Poster</button>
