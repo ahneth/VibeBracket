@@ -1,4 +1,4 @@
-<!-- Version: 2.3.0 | Last Modified: 2026-11-14 22:35 HKT -->
+<!-- Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT -->
 <!--
   File: index.html
   Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
@@ -10,6 +10,8 @@
     - v2.1.0 (2026-11-13 19:29 HKT): Fixed nested <button> markup (contender-card-wrap), added drag-and-drop contender photo support, 4/8/16/32-seed builder options, mobile pinch-to-zoom & touch pan, and compiled standalone HTML bundle.
     - v2.2.0 (2026-11-14 10:17 HKT): Integrated js/photoStore.js (IndexedDB vault, POD2-201) and js/packSanitizer.js (closing CAR-20261114-01 & CAR-20261114-02, POD2-205), added Live Streamer HUD & keyboard shortcuts (POD2-202), JSON/CSV Pack Import & Export (POD2-203), and 4K Pro Poster Export (POD2-204).
     - v2.3.0 (2026-11-14 22:35 HKT): Standardized 32-Seed Arena (POD2-301), 3-Tier Authentic 32-Seed AI & Live Wikimedia Synthesizer (POD2-302), Real-Time Seed Image Lookup with CORS Canvas Protection (POD2-303), GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion + HK PDPO/GDPR Consent (POD2-304), Auto-Populated S/A/B/C/D Tier List + HTML5 Drag-and-Drop (POD2-305), and $9.99/mo & $79.00/yr Creator Pro Pricing Lock (POD2-306).
+    - v2.4.0 (2026-11-15 10:36 HKT): Added 3-Provider CORS Image Fetcher + 1-Tap Seed Photo Cycler buttons (POD2-401), 4 Co-Star Hero Presets & Live Sliders (POD2-402), 1080p/4K Tier-List Share Poster export buttons with Robbery Fixed badges (POD2-403), and Beat-My-Bracket #challenge= Taste Compatibility Scorecard (POD2-404).
+    - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-501 Contextual <Seed Name> <Arena Topic> Live Photo Fetching, POD2-502 Zero Generic Suffixes & Cache Purger, POD2-503 Overlapping Head-to-Head Battle Arena with Diagonal Cross-Section VS Divider (#vsDiagonalDivider), and POD2-504 Exact 2-6-8-8-8 Tier System with 8 Round-of-32 Loser-Bracket Placement Battles (#loserPlacementStage).
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -31,7 +33,7 @@
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.3.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.5.0</span>
         </div>
       </div>
 
@@ -58,6 +60,8 @@
       <div class="topic-strip">
         <div class="topic-pills" id="topicPills"></div>
         <div class="action-row">
+          <button type="button" class="btn btn-sm btn-primary" id="btnCopyChallengeLink" title="Copy a Beat-My-Bracket #challenge= link with your picks">⚔️ Beat My Bracket Link</button>
+          <button type="button" class="btn btn-sm" id="btnSimulateChallenge" title="Preview Friend-vs-Friend Taste Compatibility Scorecard">🤝 Compare Rival Picks</button>
           <button type="button" class="btn btn-sm" id="btnUndoVote" disabled>Undo</button>
           <button type="button" class="btn btn-sm" id="btnResetBracket">Restart</button>
         </div>
@@ -72,6 +76,8 @@
           <span><kbd class="kbd-badge">Z</kbd>Undo Vote</span>
         </div>
       </div>
+
+      <div class="challenge-scorecard" id="challengeScorecard" style="display:none;" role="region" aria-label="Friend-vs-Friend Taste Compatibility Scorecard"></div>
 
       <div class="card glass-card">
         <div class="arena-meta">
@@ -105,11 +111,13 @@
               </button>
               <div class="contender-card-actions">
                 <button type="button" class="contender-photo-btn" id="btnLeftPhoto" title="Upload or drag-and-drop custom contender photo">📷 Custom Photo (or Drop Image)</button>
+                <button type="button" class="contender-photo-btn" id="btnLeftCyclePhoto" title="Cycle between real-time candidate photos (Wikimedia / Openverse CC / SVG)">🔄 Cycle Photo</button>
                 <input type="file" id="leftPhotoInput" accept="image/*" hidden />
               </div>
             </div>
 
-            <div class="vs-badge">
+            <div class="vs-diagonal-divider" id="vsDiagonalDivider" aria-hidden="true"></div>
+            <div class="vs-badge" id="vsBattleBadge">
               <span class="vs-bolt">⚡</span>
               <span>VS</span>
             </div>
@@ -123,6 +131,7 @@
               </button>
               <div class="contender-card-actions">
                 <button type="button" class="contender-photo-btn" id="btnRightPhoto" title="Upload or drag-and-drop custom contender photo">📷 Custom Photo (or Drop Image)</button>
+                <button type="button" class="contender-photo-btn" id="btnRightCyclePhoto" title="Cycle between real-time candidate photos (Wikimedia / Openverse CC / SVG)">🔄 Cycle Photo</button>
                 <input type="file" id="rightPhotoInput" accept="image/*" hidden />
               </div>
             </div>
@@ -155,6 +164,19 @@
               <button type="button" class="btn btn-primary" id="btnGoPoster">Bake Photo Into Viral Poster</button>
               <button type="button" class="btn btn-primary" id="btnGoTiersFromChampion">Review Auto-Ranked Tier List</button>
               <button type="button" class="btn" id="btnCopySummary">Copy Results</button>
+            </div>
+          </div>
+
+          <div class="placement-battle-card" id="loserPlacementStage">
+            <div class="arena-meta" style="margin-bottom:0.4rem;">
+              <span class="round-badge" id="placementBadge">Redemption Placement Bracket (2-6-8-8-8 Tier System)</span>
+              <button type="button" class="btn btn-sm btn-primary" id="btnAutoResolvePlacements">⚡ Auto-Resolve Placement Battles</button>
+            </div>
+            <p class="section-sub" id="placementStatusText">Vote on the 8 Round-of-32 Loser Placement Battles to separate C-Tier (8 winners) from D-Tier (8 losers) for the exact S(2) · A(6) · B(8) · C(8) · D(8) Tier List!</p>
+            <div class="placement-match-row" id="placementMatchRow">
+              <button type="button" class="btn btn-primary" id="btnPlacementLeft">Promote Left to C-Tier</button>
+              <span style="font-weight:900;color:#fbbf24;text-align:center;">⚔️ C vs D</span>
+              <button type="button" class="btn btn-primary" id="btnPlacementRight">Promote Right to C-Tier</button>
             </div>
           </div>
 
@@ -199,6 +221,8 @@
           </div>
           <div class="btn-cluster">
             <button type="button" class="btn btn-sm btn-primary" id="btnAutoRankTiers">⚡ Auto-Rank from Bracket</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnExportTierPoster">📸 Export Tier Poster (1080p)</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnExportTierPoster4k">📸 Export 4K Tier Poster</button>
             <button type="button" class="btn btn-sm" id="btnClearTiers">Clear Tiers</button>
           </div>
         </div>
@@ -335,8 +359,33 @@
               <select class="select" id="posterAspectSelect">
                 <option value="9:16">9:16 Vertical Story (1080×1920 / 4K 2160×3840)</option>
                 <option value="1:1">1:1 Square Feed (1080×1080 / 4K 2160×2160)</option>
-                <option value="4:5">4:5 Classic Portrait (1080×1350 / 4K 2160×2700)</option>
+                <option value="4:5">4:5 Social Portrait (1080×1350 / 4K 2160×2700)</option>
               </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="posterPresetSelect">2b. Co-Star Hero Scene Layout Preset</label>
+              <select class="select" id="posterPresetSelect">
+                <option value="rivals" selected>Back-to-Back Rivals (Dual Neon Split)</option>
+                <option value="versus">Split Neon Versus (Diagonal Lightning Clash)</option>
+                <option value="podium">Championship Podium Co-Star (Twin Gold Frames)</option>
+                <option value="hologram">Trading Card Foil Hologram (Collector Sheen)</option>
+              </select>
+            </div>
+
+            <div class="poster-slider-grid">
+              <div class="slider-item">
+                <label for="posterPhotoScaleSlider">Portrait Zoom: <strong id="posterScaleVal">100%</strong></label>
+                <input type="range" id="posterPhotoScaleSlider" min="60" max="150" value="100" />
+              </div>
+              <div class="slider-item">
+                <label for="posterPhotoOffsetSlider">Vertical Offset: <strong id="posterOffsetVal">0px</strong></label>
+                <input type="range" id="posterPhotoOffsetSlider" min="-80" max="80" value="0" />
+              </div>
+              <div class="slider-item">
+                <label for="posterRimGlowSlider">Neon Rim Glow: <strong id="posterRimGlowVal">75%</strong></label>
+                <input type="range" id="posterRimGlowSlider" min="0" max="100" value="75" />
+              </div>
             </div>
 
             <div class="form-group">
