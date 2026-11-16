@@ -1,4 +1,5 @@
 /* Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT | Module: css/styles.css     - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-04 (UI Modernization: Obsidian-Aurora design tokens, Plus Jakarta Sans display typography, elevated glassmorphism, crisp contender portrait framing) and POD2-601..604 (3D Battle Tilt, Vibe Streak HUD, Redemption Stage Banner, Tier Provenance Inspector).
+    - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-704 (UI Modernization Phase 2): Bento Command Header (.bento-command-bar), animated #photoProgressPill, and contender metadata framing.
 */
 /*
   File: css/styles.css
@@ -962,4 +963,35 @@ body {
     transform: none !important;
     transition: none !important;
   }
+}
+
+
+/* === v2.7.0 Phase 2 UI Modernization: Bento Command Header & Live Photo Progress Pill (POD2-704) === */
+.topbar-inner {
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.photo-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.24rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #bae6fd;
+}
+
+.seed-img-status-bar {
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.82));
+  border: 1px solid rgba(56, 189, 248, 0.34);
+  border-radius: 12px;
+  padding: 0.55rem 0.85rem;
 }
