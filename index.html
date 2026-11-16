@@ -1,4 +1,5 @@
-<!-- Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT -->
+<!-- Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT     - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-01..04 & POD2-601..605: modernized UI header & typography, added 1-tap Pin Image URL buttons (#btnLeftPinUrl / #btnRightPinUrl), Vibe Streak HUD (#vibeStreakBadge), Battle of Losers stage banner (#redemptionStageBanner), 39-Match Tier Provenance Inspector + Re-Fight (#tierProvenanceBar / #btnRefightPlacementMatch), and Dual-Slide Pack / 3s Clash Video export buttons.
+-->
 <!--
   File: index.html
   Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
@@ -21,7 +22,7 @@
   <title>VibeBracket Arena — Interactive Brackets, Tier Lists &amp; AI Posters by NetHustle</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -33,7 +34,7 @@
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.5.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.6.0</span>
         </div>
       </div>
 
@@ -81,7 +82,7 @@
 
       <div class="card glass-card">
         <div class="arena-meta">
-          <span class="round-badge" id="roundBadge">Round of 32</span>
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;"><span class="round-badge" id="roundBadge">Round of 32</span><span class="vibe-streak-badge" id="vibeStreakBadge" title="Rapid Decision Tempo Streak">⚡ Vibe Streak: 0x</span></div>
           <div class="progress-wrap">
             <div class="progress-label">
               <span id="matchCounter">Match 1 of 31</span>
@@ -100,6 +101,9 @@
           <button type="button" class="btn btn-sm" id="btnFetchSeedImages" title="Fetch real-time photographs for all 32 seeds">🔍 Fetch Live Seed Photos</button>
         </div>
 
+        <div class="redemption-stage-banner" id="redemptionStageBanner" role="status" aria-live="polite">
+          <span id="redemptionBannerText">⚔️ 39-Match Tournament Structure: 31 Main Knockout Matches + 8 Battle of Losers Redemption Matches → Exact S(2) · A(6) · B(8) · C(8) · D(8) Tiers</span>
+        </div>
         <div id="matchupStage">
           <div class="matchup-grid">
             <div class="contender-card-wrap" id="leftCardWrap">
@@ -111,7 +115,9 @@
               </button>
               <div class="contender-card-actions">
                 <button type="button" class="contender-photo-btn" id="btnLeftPhoto" title="Upload or drag-and-drop custom contender photo">📷 Custom Photo (or Drop Image)</button>
+                <button type="button" class="contender-photo-btn" id="btnLeftPinUrl" title="Paste &amp; pin any custom https:// image URL for Left Contender">📌 Pin URL</button>
                 <button type="button" class="contender-photo-btn" id="btnLeftCyclePhoto" title="Cycle between real-time candidate photos (Wikimedia / Openverse CC / SVG)">🔄 Cycle Photo</button>
+                <span class="seed-source-pill" id="leftSourcePill">Auto Visual</span>
                 <input type="file" id="leftPhotoInput" accept="image/*" hidden />
               </div>
             </div>
@@ -131,7 +137,9 @@
               </button>
               <div class="contender-card-actions">
                 <button type="button" class="contender-photo-btn" id="btnRightPhoto" title="Upload or drag-and-drop custom contender photo">📷 Custom Photo (or Drop Image)</button>
+                <button type="button" class="contender-photo-btn" id="btnRightPinUrl" title="Paste &amp; pin any custom https:// image URL for Right Contender">📌 Pin URL</button>
                 <button type="button" class="contender-photo-btn" id="btnRightCyclePhoto" title="Cycle between real-time candidate photos (Wikimedia / Openverse CC / SVG)">🔄 Cycle Photo</button>
+                <span class="seed-source-pill" id="rightSourcePill">Auto Visual</span>
                 <input type="file" id="rightPhotoInput" accept="image/*" hidden />
               </div>
             </div>
@@ -227,6 +235,14 @@
           </div>
         </div>
 
+        <div class="tier-provenance-bar" id="tierProvenanceBar" role="region" aria-label="39-Match Tournament Provenance Inspector">
+          <div class="tier-provenance-details">
+            <strong id="tierProvenanceTitle">🔍 39-Match Placement Provenance Inspector (Exact 2-6-8-8-8 Distribution)</strong>
+            <span id="tierProvenanceSummary">Click any contender chip below to inspect its Round-of-32 through Grand Final &amp; Battle of Losers match record, or re-fight its C/D redemption battle in 1 tap.</span>
+            <span class="tier-provenance-rule" id="tierProvenanceRule">Distribution Rule: S (2 Finalists) · A (6 QF/SF) · B (8 R16) · C (8 Battle of Losers Winners) · D (8 Battle of Losers Losers)</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" id="btnRefightPlacementMatch" style="display:none;">⚔️ Flip / Re-Fight Redemption Match</button>
+        </div>
         <div class="tier-rows" id="tierRows"></div>
         <h3 class="pool-heading">Contender Pool</h3>
         <div class="tier-pool" id="tierPool"></div>
@@ -412,6 +428,8 @@
               <button type="button" class="btn btn-primary" id="btnRunPosterGenAiFusion">✨ Run GenAI Co-Star Scene Fusion</button>
               <button type="button" class="btn btn-primary" id="btnDownloadPoster">Download 1080×1350 PNG Poster</button>
               <button type="button" class="btn btn-primary" id="btnDownloadPoster4k">Download 4K Pro Poster (2160p)</button>
+              <button type="button" class="btn btn-primary" id="btnExportDualPack">🖼️ Download Dual-Slide Pack (Hero + 2-6-8-8-8 Tiers)</button>
+              <button type="button" class="btn btn-primary" id="btnExportClashVideo">🎬 Export 3s Diagonal VS Clash Clip (.webm)</button>
               <button type="button" class="btn" id="btnSharePoster">Share Poster</button>
               <button type="button" class="btn" id="btnCopyShareText">Copy Viral Caption</button>
               <button type="button" class="btn" id="btnClearPhoto">Remove Photo</button>
