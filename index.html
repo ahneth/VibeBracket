@@ -1,4 +1,5 @@
 <!-- Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT     - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-01..04 & POD2-601..605: modernized UI header & typography, added 1-tap Pin Image URL buttons (#btnLeftPinUrl / #btnRightPinUrl), Vibe Streak HUD (#vibeStreakBadge), Battle of Losers stage banner (#redemptionStageBanner), 39-Match Tier Provenance Inspector + Re-Fight (#tierProvenanceBar / #btnRefightPlacementMatch), and Dual-Slide Pack / 3s Clash Video export buttons.
+    - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-701..705: upgraded header to Bento Command Bar, added #photoProgressPill and 1-tap #btnRetryMissingPhotos in #seedImgStatusBar, and bumped brand version to v2.7.0.
 -->
 <!--
   File: index.html
@@ -34,7 +35,7 @@
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.6.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.7.0</span>
         </div>
       </div>
 
@@ -97,8 +98,14 @@
         <h2 id="arenaBracketTitle" class="section-heading"></h2>
         <p id="arenaBracketSubtitle" class="section-sub"></p>
         <div class="seed-img-status-bar" id="seedImgStatusBar">
-          <span id="seedImgStatusText">🖼️ Real-Time Seed Images: Ready (32-Seed Arena · Wikimedia / Google Image CORS Pipeline)</span>
-          <button type="button" class="btn btn-sm" id="btnFetchSeedImages" title="Fetch real-time photographs for all 32 seeds">🔍 Fetch Live Seed Photos</button>
+          <div style="display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap;">
+            <span id="seedImgStatusText">🖼️ Real-Time Seed Images: Ready (32-Seed Arena · Wikidata / Wikimedia / Openverse Pipeline)</span>
+            <span class="photo-progress-pill" id="photoProgressPill">32-Seed Visual Vault Active</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm" id="btnFetchSeedImages" title="Fetch real-time photographs for all 32 seeds">🔍 Fetch Live Seed Photos</button>
+            <button type="button" class="btn btn-sm" id="btnRetryMissingPhotos" title="Retry resolving any remaining uncached seed photos via Wikidata P154/P18 &amp; Wikimedia">🔄 Retry Missing Photos</button>
+          </div>
         </div>
 
         <div class="redemption-stage-banner" id="redemptionStageBanner" role="status" aria-live="polite">
