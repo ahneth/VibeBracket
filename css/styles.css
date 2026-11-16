@@ -1,4 +1,5 @@
-/* Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT | Module: css/styles.css */
+/* Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT | Module: css/styles.css     - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-04 (UI Modernization: Obsidian-Aurora design tokens, Plus Jakarta Sans display typography, elevated glassmorphism, crisp contender portrait framing) and POD2-601..604 (3D Battle Tilt, Vibe Streak HUD, Redemption Stage Banner, Tier Provenance Inspector).
+*/
 /*
   File: css/styles.css
   Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
@@ -816,5 +817,149 @@ canvas#posterCanvas { max-width: 100%; height: auto; border-radius: var(--radius
   }
   .placement-match-row {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* === v2.6.0 UI Modernization (FD-P0-20261116-04 & POD2-601..604) === */
+:root {
+  --bg-canvas: #060913;
+  --bg-surface: rgba(15, 23, 42, 0.78);
+  --bg-elevated: rgba(30, 41, 59, 0.88);
+  --bg-hover: rgba(51, 65, 85, 0.92);
+  --border-subtle: rgba(148, 163, 184, 0.18);
+  --border-glow: rgba(56, 189, 248, 0.42);
+  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% -5%, rgba(56, 189, 248, 0.20), transparent 45%),
+    radial-gradient(circle at 85% 5%, rgba(168, 85, 247, 0.18), transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(244, 63, 94, 0.10), transparent 50%),
+    #060913;
+}
+
+.topbar {
+  background: rgba(6, 9, 19, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.brand-title, .section-heading, .contender-name, .champion-title {
+  font-family: var(--font-display);
+}
+
+.glass-card {
+  background: linear-gradient(165deg, rgba(15, 23, 42, 0.84), rgba(9, 13, 24, 0.92));
+  backdrop-filter: blur(20px) saturate(165%);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.contender-card-wrap {
+  perspective: 950px;
+}
+
+.contender-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.95), rgba(9, 13, 24, 0.98));
+  border: 1.5px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transform-style: preserve-3d;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contender-banner-img {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 12px;
+  background: radial-gradient(circle at center, #1e293b, #090d16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+.seed-source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+}
+
+.vibe-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(244, 63, 94, 0.2));
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fde68a;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.22);
+}
+
+.redemption-stage-banner {
+  margin: 0.65rem 0 0.9rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.18), rgba(236, 72, 153, 0.18));
+  border: 1.5px solid rgba(251, 191, 36, 0.6);
+  color: #fef3c7;
+  font-size: 0.84rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tier-provenance-bar {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85));
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.tier-provenance-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+}
+
+.tier-provenance-rule {
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.tier-count-sub {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  opacity: 0.82;
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contender-btn {
+    transform: none !important;
+    transition: none !important;
   }
 }
