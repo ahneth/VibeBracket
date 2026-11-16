@@ -1,4 +1,4 @@
-// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
+// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -11,6 +11,7 @@
  *   - v2.3.0 (2026-11-14 22:35 HKT): Standardized all STARTER_TOPICS to 32 authentic seeds (5 rounds, 31 matches) per POD2-301 (FD-P0-20261114-01) and added autoPopulateTiersFromBracket() mapping tournament elimination rounds to S/A/B/C/D tiers (2/2/4/8/16 seeds) per POD2-305 (FD-P0-20261114-05).
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added autoTiers snapshot & getTierPromotionDelta() for Robbery Fixed badges (POD2-403), posterPreset/scale/offset/rimGlow sliders (POD2-402), and #challenge= activeChallenge hydration (POD2-404).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-502 historical generic-suffix state scrubbing in load() and starter packs, and POD2-504 (FD-P0-20261115-04) exact 2-6-8-8-8 Tier Assignment (S:2, A:6, B:8, C:8, D:8) + 8-match Round-of-32 Loser-Bracket Placement Battles.
+ *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-03 & POD2-603: added getSeedTournamentProvenance(topic, bracket, itemId) for 39-match provenance inspection and reopenPlacementOrBracketMatch() for 1-tap counterfactual re-fights.
  */
 window.VibeState = (() => {
   const PHOTO_STORAGE_KEY = 'vibetrack_custom_images';
@@ -507,8 +508,114 @@ window.VibeState = (() => {
     return best;
   }
 
+
+  /**
+   * FD-P0-20261116-03 & POD2-603: Returns the complete 39-match (31 Main Bracket +
+   * 8 Battle of Losers Redemption) match provenance for a specific contender, explaining
+   * why it landed in S (2), A (6), B (8), C (8), or D (8) and identifying its decisive match.
+   */
+  function getSeedTournamentProvenance(topic, bracket, itemId) {
+    if (!topic || !bracket || !itemId) return null;
+    const roundNames = ['Round of 32', 'Round of 16', 'Quarterfinals', 'Semifinals', 'Grand Final'];
+    const history = [];
+    let decisiveMatch = null;
+    let wins = 0;
+    let losses = 0;
+
+    (bracket.rounds || []).forEach((roundMatches, rIdx) => {
+      (roundMatches || []).forEach((m, mIdx) => {
+        if (!m || !m.left || !m.right) return;
+        if (m.left.id === itemId || m.right.id === itemId) {
+          const isLeft = m.left.id === itemId;
+          const opp = isLeft ? m.right : m.left;
+          if (m.winner) {
+            const won = m.winner.id === itemId;
+            if (won) wins++; else losses++;
+            const rec = {
+              stage: roundNames[rIdx] || ('Round ' + (rIdx + 1)),
+              roundIdx: rIdx,
+              matchIdx: mIdx,
+              isPlacement: false,
+              won,
+              opponent: opp
+            };
+            history.push(rec);
+            decisiveMatch = rec;
+          }
+        }
+      });
+    });
+
+    (bracket.placementMatches || []).forEach((pm, pIdx) => {
+      if (!pm || !pm.left || !pm.right) return;
+      if (pm.left.id === itemId || pm.right.id === itemId) {
+        const isLeft = pm.left.id === itemId;
+        const opp = isLeft ? pm.right : pm.left;
+        const effectiveWinner = pm.winner || pm.left;
+        const won = effectiveWinner.id === itemId;
+        if (pm.winner) {
+          if (won) wins++; else losses++;
+        }
+        const rec = {
+          stage: 'Battle of Losers #' + (pIdx + 1) + ' (C vs D Redemption)',
+          roundIdx: 5,
+          matchIdx: pIdx,
+          isPlacement: true,
+          won,
+          opponent: opp
+        };
+        history.push(rec);
+        decisiveMatch = rec;
+      }
+    });
+
+    const tierMap = (state.tiers && state.tiers[topic.id]) || autoPopulateTiers26888(topic, bracket);
+    const assignedTier = tierMap[itemId] || 'B';
+    const ruleTextMap = {
+      S: 'S-Tier (2 Seeds): Reached the Grand Final (Champion or Runner-Up).',
+      A: 'A-Tier (6 Seeds): Top-8 Finisher (2 Semifinalists + 4 Quarterfinalists).',
+      B: 'B-Tier (8 Seeds): Won Round of 32 match, eliminated in Round of 16.',
+      C: 'C-Tier (8 Seeds): Lost in Round of 32, then WON Battle of Losers Redemption Match.',
+      D: 'D-Tier (8 Seeds): Lost in Round of 32, then LOST Battle of Losers Redemption Match.'
+    };
+
+    return {
+      itemId,
+      assignedTier,
+      tierRule: ruleTextMap[assignedTier] || 'Auto-ranked from 39-match tournament.',
+      wins,
+      losses,
+      history,
+      decisiveMatch
+    };
+  }
+
+  /**
+   * POD2-603: Flips or re-opens a contender's decisive placement match so the user
+   * can immediately re-fight / toggle its C-Tier vs D-Tier redemption outcome.
+   */
+  function flipDecisivePlacementOutcome(topic, bracket, itemId) {
+    if (!topic || !bracket || !itemId) return null;
+    if (!Array.isArray(bracket.placementMatches) || !bracket.placementMatches.length) {
+      initLoserPlacementRound(bracket);
+    }
+    for (let i = 0; i < bracket.placementMatches.length; i++) {
+      const pm = bracket.placementMatches[i];
+      if (pm && (pm.left.id === itemId || pm.right.id === itemId)) {
+        const curWinner = pm.winner || pm.left;
+        pm.winner = (curWinner.id === pm.left.id) ? pm.right : pm.left;
+        bracket.currentPlacementIdx = i;
+        autoPopulateTiers26888(topic, bracket);
+        return { matchIndex: i, newWinner: pm.winner };
+      }
+    }
+    return null;
+  }
+
   return {
     data: state,
+    getSeedTournamentProvenance,
+    flipDecisivePlacementOutcome,
     STARTER_TOPICS,
     load,
     hydratePhotosFromVault,

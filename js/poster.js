@@ -1,4 +1,4 @@
-// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
+// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -12,6 +12,7 @@
  *   - v2.3.0 (2026-11-14 22:35 HKT): Upgraded to GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion (drawHeroSceneFusion + runGenAiHeroFusion) merging the user's uploaded photo/face directly with the winning contender scene alongside VibeBracket Arena · by NetHustle branding (POD2-304 / FD-P0-20261114-04).
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added 4 Co-Star Hero Composition Presets (rivals, versus, podium, hologram) with live scale/offset/rim-glow slider transforms (POD2-402) and renderTierPoster() for 1080p/4K 32-Seed Tier-List PNG exports with glowing "🔥 Robbery Fixed (+N)" badges (POD2-403).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Updated renderTierPoster() header & tier badges to display exact 2-6-8-8-8 Tier System counts and C/D Placement Battle status (POD2-504).
+ *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented POD2-604: added exportDualSlidePack (Co-Star Hero Fusion + 2-6-8-8-8 Tier Verdict) and exportDiagonalClashVideo (3s 30fps .webm animated clash clip).
  */
 window.VibePoster = (() => {
   const THEMES = {

@@ -1,4 +1,4 @@
-// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
+// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
 /**
  * File: js/packSanitizer.js
  * Description: UTF-8 safe URL-hash codec (#b=/#bracket= and #challenge=), 31-bit taste compatibility comparator, power-of-two tournament schema validator, and CSV/JSON pack import/export engine.
@@ -8,6 +8,7 @@
  *   - v2.3.0 (2026-11-14 22:35 HKT): Preserved imageSource attribution metadata and https:// imageUrl validation for 32-seed packs (POD2-301 & POD2-303).
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added encodeChallengeHash(), decodeChallengeHash(), and computeTasteCompatibility() for POD2-404 "Beat My Bracket" Friend-vs-Friend Taste Compatibility Challenges (#challenge=).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Added scrubGenericText() and purgeLegacyGenericState() for POD2-502 (FD-P0-20261115-02) to eradicate generic template suffixes across live inputs and historical localStorage/IndexedDB state.
+ *   - v2.6.0 (2026-11-16 10:09 HKT): Synchronized OWASP 2025 pack sanitizer & challenge compatibility codec with v2.6.0 domain-pure 32-seed rosters.
  */
 window.PackSanitizer = (() => {
   const VALID_SEED_COUNTS = new Set([4, 8, 16, 32]);

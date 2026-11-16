@@ -1,4 +1,4 @@
-// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
+// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -12,6 +12,7 @@
  *   - v2.3.0 (2026-11-14 22:35 HKT): Wired 32-Seed Arena defaults (POD2-301), 3-Tier Authentic 32-Seed AI/Wikimedia generation (POD2-302), real-time CORS-safe seed image resolution with onerror SVG fallback (POD2-303), GenAI / Smart Canvas Hero Scene Co-Star Photo Fusion with HK PDPO/GDPR consent gate (POD2-304), automatic S/A/B/C/D Tier List population on Champion crown + HTML5 Drag-and-Drop & WCAG keyboard reordering (POD2-305), and locked $9.99/mo & $79.00/yr Creator Pro pricing disclosures (POD2-306).
  *   - v2.4.0 (2026-11-15 10:36 HKT): Wired 3-Provider CORS Image Fetcher & 1-Tap Seed Photo Cycler (#btnLeftCyclePhoto / #btnRightCyclePhoto, POD2-401), 4 Co-Star Hero Scene Presets & Live Sliders (#posterPresetSelect / #posterPhotoScaleSlider / #posterPhotoOffsetSlider / #posterRimGlowSlider, POD2-402), 1080p/4K Tier-List Share Poster export with Robbery Fixed badges (#btnExportTierPoster / #btnExportTierPoster4k, POD2-403), and #challenge= Beat-My-Bracket Taste Compatibility Scorecard (#btnCopyChallengeLink / #challengeScorecard, POD2-404).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Wired contextual <Seed Name> <Arena Topic> photo fetching & cycling (POD2-501), removed remaining 'Classics' prompt hint (POD2-502), wired overlapping diagonal VS battle stage shockwaves (POD2-503), and wired the 8-match Round-of-32 Loser-Bracket Placement Battles & exact 2-6-8-8-8 Tier List (POD2-504).
+ *   - v2.6.0 (2026-11-16 10:09 HKT): Wired FD-P0-20261116-01..04 & POD2-601..605: 1-tap Pin Image URL (#btnLeftPinUrl / #btnRightPinUrl), 3D diagonal battle card tilt, Vibe Streak HUD (#vibeStreakBadge), Battle of Losers redemption banner, 39-Match Tier Provenance Inspector (#tierProvenanceBar / #btnRefightPlacementMatch), and Dual-Slide / 3s Clash Video exporters.
  */
 (function () {
   'use strict';
@@ -21,6 +22,9 @@
   let cachedChampionPhotoUrl = null;
   let activeFusionMeta = null;
   let draggedTierItemId = null;
+  let vibeStreakCount = 0;
+  let lastVoteTs = 0;
+  let inspectedItemId = null;
 
   /** Creates a DOM element safely using textContent (OWASP A05 XSS prevention). */
   function createSafeEl(tag, text, className) {
@@ -123,6 +127,19 @@
       imgEl.src = svgFallback;
     };
     imgEl.src = targetSrc;
+    const pillId = imgEl.id === 'leftBannerImg' ? 'leftSourcePill' : (imgEl.id === 'rightBannerImg' ? 'rightSourcePill' : null);
+    if (pillId) {
+      const pillEl = document.getElementById(pillId);
+      if (pillEl) {
+        if (customOrVault) {
+          pillEl.textContent = customOrVault.startsWith('data:') ? '📌 Pinned Photo' : '📌 Pinned URL';
+        } else if (item.imageUrl && window.VibeVisuals.isSafeImageUrl(item.imageUrl)) {
+          pillEl.textContent = '🌐 ' + (item.imageSource || 'Live Photo');
+        } else {
+          pillEl.textContent = '🎨 Cyber Vector';
+        }
+      }
+    }
   }
 
   /** POD2-404: Renders the Friend-vs-Friend Beat-My-Bracket Taste Compatibility Scorecard when a #challenge= is active. */
@@ -347,7 +364,11 @@
     tierDefs.forEach((t, tIdx) => {
       const row = createSafeEl('div', null, 'tier-row');
       row.dataset.tier = t;
-      row.appendChild(createSafeEl('div', t, 'tier-label tier-' + t));
+      const targetCounts = { S: 2, A: 6, B: 8, C: 8, D: 8 };
+      const matchedForCount = topic.items.filter((it) => tierMap[it.id] === t);
+      const labelBox = createSafeEl('div', t, 'tier-label tier-' + t);
+      labelBox.appendChild(createSafeEl('span', matchedForCount.length + '/' + targetCounts[t], 'tier-count-sub'));
+      row.appendChild(labelBox);
       const itemsWrap = createSafeEl('div', null, 'tier-items');
       itemsWrap.dataset.tier = t;
 
@@ -427,6 +448,7 @@
             }
           });
 
+          chip.addEventListener('click', () => inspectContenderProvenance(it.id));
           itemsWrap.appendChild(chip);
         });
       }
@@ -578,6 +600,17 @@
   }
 
   function pickWinner(side) {
+    const nowTs = Date.now();
+    if (lastVoteTs > 0 && (nowTs - lastVoteTs) <= 6500) {
+      vibeStreakCount += 1;
+    } else {
+      vibeStreakCount = 1;
+    }
+    lastVoteTs = nowTs;
+    const streakEl = document.getElementById('vibeStreakBadge');
+    if (streakEl) {
+      streakEl.textContent = '⚡ Vibe Streak: ' + vibeStreakCount + 'x' + (vibeStreakCount >= 3 ? ' 🔥' : '');
+    }
     const topic = window.VibeState.getActiveTopic();
     const b = window.VibeState.getActiveBracket();
     if (b.champion) return;
@@ -1472,6 +1505,174 @@
   }
 
   // Boot & IndexedDB Vault Hydration
+
+  // POD2-601: 1-Tap Pin Custom Image URL for Left / Right Contender via In-Page Modal
+  function wirePinUrlBtn(btnId, side) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const b = window.VibeState.getActiveBracket();
+      if (b.champion) return;
+      const match = b.rounds[b.currentRoundIdx][b.currentMatchIdx];
+      const contender = side === 'left' ? match.left : match.right;
+      const currentUrl = window.VibeState.getContenderPhoto(contender.id) || contender.imageUrl || '';
+      document.getElementById('modalTitle').textContent = '📌 Pin Custom Image URL — ' + contender.name;
+      const body = document.getElementById('modalBody');
+      body.textContent = '';
+      const desc = createSafeEl('p', 'Paste any direct https:// image URL below to permanently pin the portrait for "' + contender.name + '" in your local IndexedDB vault:', null);
+      desc.style.marginBottom = '0.65rem';
+      body.appendChild(desc);
+      const urlInput = createSafeEl('input', null, 'input');
+      urlInput.type = 'url';
+      urlInput.placeholder = 'https://upload.wikimedia.org/...';
+      urlInput.value = currentUrl.startsWith('https://') ? currentUrl : '';
+      urlInput.style.marginBottom = '0.75rem';
+      body.appendChild(urlInput);
+      const saveBtn = createSafeEl('button', '📌 Save & Pin Image URL', 'btn btn-primary');
+      saveBtn.type = 'button';
+      saveBtn.addEventListener('click', () => {
+        const trimmed = (urlInput.value || '').trim();
+        if (!window.VibeVisuals.isSafeImageUrl(trimmed)) {
+          showToast('Please enter a valid https:// image URL.');
+          return;
+        }
+        contender.imageUrl = trimmed;
+        contender.imageSource = 'Pinned Image URL';
+        window.VibeState.setContenderPhoto(contender.id, trimmed);
+        if (window.NetHustlePhotoStore && window.NetHustlePhotoStore.pinContenderImageUrl) {
+          window.NetHustlePhotoStore.pinContenderImageUrl(contender.id, trimmed);
+        }
+        document.getElementById('modalBackdrop').classList.remove('open');
+        renderArena();
+        refreshPosterCanvas();
+        showToast('📌 Pinned image URL for ' + contender.name + '!');
+      });
+      body.appendChild(saveBtn);
+      document.getElementById('modalBackdrop').classList.add('open');
+    });
+  }
+  wirePinUrlBtn('btnLeftPinUrl', 'left');
+  wirePinUrlBtn('btnRightPinUrl', 'right');
+
+  // FD-P0-20261116-03 & POD2-603: 39-Match Tournament & Redemption Provenance Inspector
+  function inspectContenderProvenance(itemId) {
+    if (!itemId || !window.VibeState.getSeedTournamentProvenance) return;
+    inspectedItemId = itemId;
+    const topic = window.VibeState.getActiveTopic();
+    const b = window.VibeState.getActiveBracket();
+    const prov = window.VibeState.getSeedTournamentProvenance(topic, b, itemId);
+    const titleEl = document.getElementById('tierProvenanceTitle');
+    const summaryEl = document.getElementById('tierProvenanceSummary');
+    const ruleEl = document.getElementById('tierProvenanceRule');
+    const btnRefight = document.getElementById('btnRefightPlacementMatch');
+    if (!prov || !titleEl || !summaryEl) return;
+
+    const itemObj = topic.items.find((x) => x.id === itemId);
+    const label = itemObj ? ((itemObj.emoji || '🌟') + ' ' + itemObj.name) : itemId;
+    titleEl.textContent = '🔍 ' + label + ' → ' + prov.assignedTier + '-Tier (' + prov.wins + 'W - ' + prov.losses + 'L across 39-Match Arena)';
+    if (prov.history && prov.history.length > 0) {
+      summaryEl.textContent = prov.history.map((h) => h.stage + ': ' + (h.won ? '✅ Beat ' : '❌ Lost to ') + (h.opponent ? h.opponent.name : 'Opponent')).join(' · ');
+    } else {
+      summaryEl.textContent = 'No completed matches recorded yet for this contender — play or auto-rank the bracket to view match provenance.';
+    }
+    if (ruleEl) ruleEl.textContent = prov.tierRule;
+    if (btnRefight) {
+      if (prov.decisiveMatch && prov.decisiveMatch.isPlacement) {
+        btnRefight.style.display = 'inline-flex';
+        btnRefight.textContent = '⚔️ Flip ' + prov.decisiveMatch.stage;
+      } else {
+        btnRefight.style.display = 'none';
+      }
+    }
+  }
+
+  const btnRefightPlacementMatch = document.getElementById('btnRefightPlacementMatch');
+  if (btnRefightPlacementMatch) {
+    btnRefightPlacementMatch.addEventListener('click', () => {
+      if (!inspectedItemId || !window.VibeState.flipDecisivePlacementOutcome) return;
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      const res = window.VibeState.flipDecisivePlacementOutcome(topic, b, inspectedItemId);
+      if (res) {
+        window.VibeAudio.tap();
+        renderTierList();
+        inspectContenderProvenance(inspectedItemId);
+        refreshPosterCanvas();
+        showToast('⚔️ Re-fought Battle of Losers Match #' + (res.matchIndex + 1) + ' — promoted ' + res.newWinner.name + ' to C-Tier (Exact 2-6-8-8-8 maintained)!');
+      }
+    });
+  }
+
+  // POD2-602: Pointer-Reactive 3D Diagonal Battle Card Tilt
+  ['btnPickLeft', 'btnPickRight'].forEach((id) => {
+    const cardBtn = document.getElementById(id);
+    if (!cardBtn) return;
+    cardBtn.addEventListener('pointermove', (e) => {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const rect = cardBtn.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const rx = ((e.clientX - rect.left) / rect.width - 0.5) * 7;
+      const ry = (0.5 - (e.clientY - rect.top) / rect.height) * 5;
+      cardBtn.style.transform = 'perspective(950px) rotateX(' + ry.toFixed(2) + 'deg) rotateY(' + rx.toFixed(2) + 'deg) translateY(-3px)';
+    });
+    cardBtn.addEventListener('pointerleave', () => {
+      cardBtn.style.transform = '';
+    });
+  });
+
+  // POD2-604: Dual-Slide Social Pack & 3-Second Diagonal VS Clash Video Exporters
+  const btnExportDualPack = document.getElementById('btnExportDualPack');
+  if (btnExportDualPack) {
+    btnExportDualPack.addEventListener('click', () => {
+      const canvas = document.getElementById('posterCanvas');
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      const tierMap = window.VibeState.data.tiers[topic.id] || {};
+      const autoTierMap = (window.VibeState.data.autoTiers && window.VibeState.data.autoTiers[topic.id]) || {};
+      if (canvas && window.VibePoster.exportDualSlidePack) {
+        window.VibePoster.exportDualSlidePack(canvas, topic, b, tierMap, autoTierMap, {
+          theme: window.VibeState.data.posterTheme || 'cyber',
+          aspect: window.VibeState.data.posterAspect || '9:16',
+          resolution: '1x',
+          preset: window.VibeState.data.posterPreset || 'rivals',
+          photoScale: window.VibeState.data.posterPhotoScale ?? 100,
+          photoOffset: window.VibeState.data.posterPhotoOffset ?? 0,
+          rimGlow: window.VibeState.data.posterRimGlow ?? 75,
+          handle: window.VibeState.data.userHandle,
+          quote: window.VibeState.data.userQuote || '',
+          topHotTake: window.VibeState.getTopicTopHotTake(topic.id),
+          photoImg: cachedPhotoImg || cachedChampionImg,
+          championPhotoImg: cachedChampionImg,
+          fusionMeta: activeFusionMeta
+        });
+        showToast('🖼️ Exported 2-Slide Social Pack (Slide 1: Co-Star Hero Fusion + Slide 2: 2-6-8-8-8 Tier Verdict)!');
+      }
+    });
+  }
+
+  const btnExportClashVideo = document.getElementById('btnExportClashVideo');
+  if (btnExportClashVideo) {
+    btnExportClashVideo.addEventListener('click', async () => {
+      const canvas = document.getElementById('posterCanvas');
+      const topic = window.VibeState.getActiveTopic();
+      const b = window.VibeState.getActiveBracket();
+      if (!canvas || !window.VibePoster.exportDiagonalClashVideo) return;
+      btnExportClashVideo.disabled = true;
+      btnExportClashVideo.textContent = '🎬 Recording 3s Clash Clip...';
+      try {
+        const res = await window.VibePoster.exportDiagonalClashVideo(canvas, topic, b, {
+          theme: window.VibeState.data.posterTheme || 'cyber'
+        });
+        refreshPosterCanvas();
+        showToast('🎬 Exported 3-Second Diagonal VS Clash Clip (' + (res && res.format ? res.format.toUpperCase() : 'WEBM') + ')!');
+      } finally {
+        btnExportClashVideo.disabled = false;
+        btnExportClashVideo.textContent = '🎬 Export 3s Diagonal VS Clash Clip (.webm)';
+      }
+    });
+  }
+
   window.VibeState.load();
   if (document.getElementById('posterAspectSelect')) document.getElementById('posterAspectSelect').value = window.VibeState.data.posterAspect || '9:16';
   if (document.getElementById('posterPresetSelect')) document.getElementById('posterPresetSelect').value = window.VibeState.data.posterPreset || 'rivals';

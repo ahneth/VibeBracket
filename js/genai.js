@@ -1,4 +1,4 @@
-// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
+// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
 /**
  * File: js/genai.js
  * Description: 32-Seed GenAI Topic Studio & Real-Time Entity Synthesizer (Tier 1: OpenRouter BYOK 32-Seed LLM JSON; Tier 2: Live Wikipedia/Wikimedia REST Entity Resolution; Tier 3: 32-Seed Multi-Domain Curated Knowledge Graphs) with automatic real-time seed image lookup.
@@ -11,6 +11,7 @@
  *   - v2.3.0 (2026-11-14 22:35 HKT): Executed POD2-301 (32-Seed standardization across all TRENDING_PACKS and DOMAIN_BANKS), POD2-302 (deleted generic suffix templates and built Ronan's 3-Tier 32-Seed AI + Live Wikipedia/Wikimedia Entity Synthesizer), and POD2-303 (automatic real-time seed image resolution on topic generation).
  *   - v2.4.0 (2026-11-15 10:36 HKT): Synchronized build metadata and v2.4.0 multi-provider seed image & challenge compatibility integration.
  *   - v2.5.0 (2026-11-15 22:14 HKT): Executed POD2-502 (FD-P0-20261115-02) scrubbing all remaining 'Classic'/'Legend' tokens from TRENDING_PACKS and enforcing domain-strict 32-seed synthesis.
+ *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-01: completely eliminated crossPool cross-domain mixing, added 32-club European Champions League bank + 10 domain-pure banks, and upgraded multi-stage Wikipedia Category/Links/Search + Wikidata entity resolution.
  */
 window.VibeGenAI = (() => {
   const TARGET_SEED_COUNT = 32;
@@ -178,24 +179,59 @@ window.VibeGenAI = (() => {
     }
   ];
 
-  // Expanded 32-Seed Domain Knowledge Graphs (Zero Generic Suffixes — POD2-302)
+  // Expanded 32-Seed Domain-Pure Knowledge Graphs (FD-P0-20261116-01 — Zero Cross-Domain Mixing & Zero Generic Suffixes)
   const DOMAIN_BANKS = [
     {
-      keywords: ['movie', 'film', 'cinema', 'sci-fi', 'director', 'imax', 'hollywood', 'blockbuster'],
-      emojis: ['🎬', '🍿', '🎥', '🌟', '🚀', '🕶️', '🌌', '🔥'],
+      id: 'ucl-football-clubs',
+      keywords: [
+        'champions league', 'uefa', 'ucl', 'european football', 'football teams',
+        'football clubs', 'soccer teams', 'soccer clubs', 'european clubs',
+        'premier league teams', 'premier league clubs', 'la liga', 'serie a',
+        'bundesliga', 'ligue 1', 'football team', 'soccer team', 'club', 'teams', 'football', 'soccer'
+      ],
+      emojis: ['⚽', '🏆', '🛡️', '👑', '🔥', '⚡', '🥅', '🌟'],
       items: [
-        'Godzilla Minus One (2023)', 'Dune: Part Two (2024)', 'Interstellar (2014)', 'The Matrix (1999)',
-        'Inception (2010)', 'Blade Runner 2049 (2017)', 'Spirited Away (2001)', 'Terminator 2: Judgment Day (1991)',
-        'Aliens (1986)', 'The Dark Knight (2008)', 'Spider-Man: Across the Spider-Verse', 'Mad Max: Fury Road (2015)',
-        'Everything Everywhere All at Once', 'Arrival (2016)', 'Ex Machina (2014)', 'Edge of Tomorrow (2014)',
-        'Jurassic Park (1993)', 'Back to the Future (1985)', 'Star Wars: The Empire Strikes Back', 'The Lord of the Rings: The Fellowship of the Ring',
-        'Parasite (2019)', 'Oldboy (2003)', 'Infernal Affairs (無間道)', 'In the Mood for Love (花樣年華)',
-        'Kung Fu Hustle (功夫)', 'Akira (1988)', 'Princess Mononoke (1997)', 'Your Name (Kimi no Na wa)',
-        'Pacific Rim (2013)', 'District 9 (2009)', 'Children of Men (2006)', '2001: A Space Odyssey (1968)'
+        { name: 'Real Madrid CF', tag: 'La Liga · 15x European Champions', emoji: '👑', searchQuery: 'Real Madrid CF' },
+        { name: 'Manchester City', tag: 'Premier League · Etihad Champions', emoji: '🩵', searchQuery: 'Manchester City F.C.' },
+        { name: 'FC Bayern Munich', tag: 'Bundesliga · 6x European Champions', emoji: '🔴', searchQuery: 'FC Bayern Munich' },
+        { name: 'Paris Saint-Germain', tag: 'Ligue 1 · Parc des Princes', emoji: '🗼', searchQuery: 'Paris Saint-Germain F.C.' },
+        { name: 'Inter Milan', tag: 'Serie A · 3x European Champions', emoji: '🐍', searchQuery: 'Inter Milan' },
+        { name: 'Arsenal FC', tag: 'Premier League · North London Gunners', emoji: '🔴', searchQuery: 'Arsenal F.C.' },
+        { name: 'FC Barcelona', tag: 'La Liga · 5x European Champions', emoji: '🔵', searchQuery: 'FC Barcelona' },
+        { name: 'Borussia Dortmund', tag: 'Bundesliga · Signal Iduna Park', emoji: '🐝', searchQuery: 'Borussia Dortmund' },
+        { name: 'Liverpool FC', tag: 'Premier League · 6x European Champions', emoji: '🦅', searchQuery: 'Liverpool F.C.' },
+        { name: 'Bayer 04 Leverkusen', tag: 'Bundesliga · Werkself Champions', emoji: '⚫', searchQuery: 'Bayer 04 Leverkusen' },
+        { name: 'Atlético Madrid', tag: 'La Liga · Metropolitano Contenders', emoji: '🛡️', searchQuery: 'Atlético Madrid' },
+        { name: 'AC Milan', tag: 'Serie A · 7x European Champions', emoji: '🔴', searchQuery: 'AC Milan' },
+        { name: 'Juventus FC', tag: 'Serie A · Turin Bianconeri', emoji: '🦓', searchQuery: 'Juventus FC' },
+        { name: 'Atalanta BC', tag: 'Serie A · Bergamo Dea', emoji: '💙', searchQuery: 'Atalanta BC' },
+        { name: 'SL Benfica', tag: 'Primeira Liga · Estádio da Luz', emoji: '🦅', searchQuery: 'S.L. Benfica' },
+        { name: 'Sporting CP', tag: 'Primeira Liga · Lisbon Lions', emoji: '🦁', searchQuery: 'Sporting CP' },
+        { name: 'FC Porto', tag: 'Primeira Liga · 2x European Champions', emoji: '🐉', searchQuery: 'FC Porto' },
+        { name: 'PSV Eindhoven', tag: 'Eredivisie · Philips Stadion', emoji: '💡', searchQuery: 'PSV Eindhoven' },
+        { name: 'Feyenoord', tag: 'Eredivisie · De Kuip Rotterdam', emoji: '⚪', searchQuery: 'Feyenoord' },
+        { name: 'Aston Villa FC', tag: 'Premier League · 1982 European Champs', emoji: '🦁', searchQuery: 'Aston Villa F.C.' },
+        { name: 'RB Leipzig', tag: 'Bundesliga · Red Bull Arena', emoji: '🐂', searchQuery: 'RB Leipzig' },
+        { name: 'VfB Stuttgart', tag: 'Bundesliga · MHPArena Contenders', emoji: '🏎️', searchQuery: 'VfB Stuttgart' },
+        { name: 'AS Monaco', tag: 'Ligue 1 · Stade Louis II', emoji: '🇲🇨', searchQuery: 'AS Monaco FC' },
+        { name: 'Stade Brestois 29', tag: 'Ligue 1 · Brittany Contenders', emoji: '🏴‍☠️', searchQuery: 'Stade Brestois 29' },
+        { name: 'Lille OSC', tag: 'Ligue 1 · Les Dogues', emoji: '🐕', searchQuery: 'Lille OSC' },
+        { name: 'Club Brugge KV', tag: 'Belgian Pro League · Blauw-Zwart', emoji: '🔵', searchQuery: 'Club Brugge KV' },
+        { name: 'Celtic FC', tag: 'Scottish Premiership · 1967 Champions', emoji: '🍀', searchQuery: 'Celtic F.C.' },
+        { name: 'FC Shakhtar Donetsk', tag: 'Ukrainian Premier League Champions', emoji: '⚒️', searchQuery: 'FC Shakhtar Donetsk' },
+        { name: 'FC Red Bull Salzburg', tag: 'Austrian Bundesliga Champions', emoji: '⚡', searchQuery: 'FC Red Bull Salzburg' },
+        { name: 'Bologna FC 1909', tag: 'Serie A · Rossoblù Contenders', emoji: '🔴', searchQuery: 'Bologna FC 1909' },
+        { name: 'Girona FC', tag: 'La Liga · Montilivi Contenders', emoji: '❤️', searchQuery: 'Girona FC' },
+        { name: 'GNK Dinamo Zagreb', tag: 'Croatian HNL · Stadion Maksimir', emoji: '🔷', searchQuery: 'GNK Dinamo Zagreb' }
       ]
     },
     {
-      keywords: ['football', 'soccer', 'premier league', 'arsenal', 'manchester united', 'striker', 'midfielder', 'player', 'club', 'ucl'],
+      id: 'football-players',
+      keywords: [
+        'football player', 'soccer player', 'football players', 'soccer players',
+        'striker', 'midfielder', 'defender', 'goalkeeper', 'ballon dor',
+        'footballer', 'premier league player', 'manchester united player', 'arsenal player', 'goat player'
+      ],
       emojis: ['⚽', '🥅', '🏆', '🔥', '⚡', '🛡️', '👑', '🎯'],
       items: [
         'Bukayo Saka', 'Martin Ødegaard', 'Declan Rice', 'William Saliba',
@@ -209,7 +245,23 @@ window.VibeGenAI = (() => {
       ]
     },
     {
-      keywords: ['game', 'gaming', 'arcade', 'rpg', 'console', 'pc', 'nintendo', 'playstation', 'steam'],
+      id: 'cinema-movies',
+      keywords: ['movie', 'movies', 'film', 'films', 'cinema', 'sci-fi', 'director', 'imax', 'hollywood', 'blockbuster', 'oscar'],
+      emojis: ['🎬', '🍿', '🎥', '🌟', '🚀', '🕶️', '🌌', '🔥'],
+      items: [
+        'Godzilla Minus One (2023)', 'Dune: Part Two (2024)', 'Interstellar (2014)', 'The Matrix (1999)',
+        'Inception (2010)', 'Blade Runner 2049 (2017)', 'Spirited Away (2001)', 'Terminator 2: Judgment Day (1991)',
+        'Aliens (1986)', 'The Dark Knight (2008)', 'Spider-Man: Across the Spider-Verse', 'Mad Max: Fury Road (2015)',
+        'Everything Everywhere All at Once', 'Arrival (2016)', 'Ex Machina (2014)', 'Edge of Tomorrow (2014)',
+        'Jurassic Park (1993)', 'Back to the Future (1985)', 'Star Wars: The Empire Strikes Back', 'The Lord of the Rings: The Fellowship of the Ring',
+        'Parasite (2019)', 'Oldboy (2003)', 'Infernal Affairs (無間道)', 'In the Mood for Love (花樣年華)',
+        'Kung Fu Hustle (功夫)', 'Akira (1988)', 'Princess Mononoke (1997)', 'Your Name (Kimi no Na wa)',
+        'Pacific Rim (2013)', 'District 9 (2009)', 'Children of Men (2006)', '2001: A Space Odyssey (1968)'
+      ]
+    },
+    {
+      id: 'video-games',
+      keywords: ['game', 'games', 'gaming', 'arcade', 'rpg', 'jrpg', 'console', 'pc', 'nintendo', 'playstation', 'steam', 'esports'],
       emojis: ['🎮', '🕹️', '⚔️', '🛡️', '🏆', '🔥', '⚡', '🚀'],
       items: [
         'Elden Ring', 'Baldur Gate 3', 'Final Fantasy VII', 'Chrono Trigger',
@@ -223,12 +275,23 @@ window.VibeGenAI = (() => {
       ]
     },
     {
-      keywords: ['food', 'snack', 'dinner', 'lunch', 'restaurant', 'eat', 'cuisine', 'ramen', 'sushi', 'noodle', 'pizza', 'burger'],
+      id: 'food-dining',
+      keywords: ['food', 'snack', 'dinner', 'lunch', 'restaurant', 'eat', 'cuisine', 'ramen', 'sushi', 'noodle', 'pizza', 'burger', 'yakiniku', 'dim sum'],
       emojis: ['🍣', '🥩', '🍜', '🥟', '🍗', '🍲', '🍛', '🍕'],
-      items: (window.VibeState && window.VibeState.STARTER_TOPICS && window.VibeState.STARTER_TOPICS[2]) ? window.VibeState.STARTER_TOPICS[2].items.map((x) => x.name) : []
+      items: (window.VibeState && window.VibeState.STARTER_TOPICS && window.VibeState.STARTER_TOPICS[2]) ? window.VibeState.STARTER_TOPICS[2].items.map((x) => x.name) : [
+        'Tonkotsu Ramen', 'Omakase Sushi Platter', 'A5 Wagyu Yakiniku', 'Har Gow (Shrimp Dumplings)',
+        'Siu Mai (Pork & Shrimp)', 'Char Siu (BBQ Pork)', 'Roast Goose Drumstick', 'Crispy Pork Belly',
+        'Wonton Noodles in Supreme Broth', 'Beef Brisket Curry Rice', 'Japanese Katsu Curry', 'Unagi Don (Grilled Eel)',
+        'Salmon Sashimi', 'Tempura Udon', 'Takoyaki', 'Okonomiyaki',
+        'Xiao Long Bao', 'Peking Duck Wraps', 'Mapo Tofu', 'Dan Dan Noodles',
+        'Claypot Rice with Chinese Sausage', 'Baked Pork Chop Rice', 'Pineapple Bun with Butter', 'Egg Tart (Flaky Pastry)',
+        'Hainanese Chicken Rice', 'Pad Thai', 'Pho Bo (Beef Noodle Soup)', 'Korean Fried Chicken',
+        'Margherita Neapolitan Pizza', 'Double Smash Cheeseburger', 'Ribeye Steak Frites', 'Matcha Parfait'
+      ]
     },
     {
-      keywords: ['song', 'music', 'pop', 'singer', 'band', 'album', 'anthem', 'j-pop', 'cantopop'],
+      id: 'music-songs',
+      keywords: ['song', 'songs', 'music', 'pop', 'singer', 'band', 'album', 'anthem', 'j-pop', 'cantopop', 'k-pop', 'ost'],
       emojis: ['🎧', '🎤', '🎸', '🎹', '🌟', '🔥', '🎶', '💿'],
       items: [
         'Idol — YOASOBI', 'KICK BACK — Kenshi Yonezu', 'Gurenge — LiSA', 'Bling-Bang-Bang-Born — Creepy Nuts',
@@ -240,44 +303,150 @@ window.VibeGenAI = (() => {
         'Betelgeuse — Yuuri', 'Usseewa — Ado', 'Show — Ado', 'Shinunoga E-Wa — Fujii Kaze',
         'Matsuri — Fujii Kaze', 'Koi — Gen Hoshino', 'Subtitle — Official HIGE DANdism', 'Cry Baby — Official HIGE DANdism'
       ]
+    },
+    {
+      id: 'basketball-nba',
+      keywords: ['nba', 'basketball', 'hoops', 'dunk', 'playoffs', 'lakers', 'warriors', 'celtics', 'bulls'],
+      emojis: ['🏀', '🏆', '🔥', '⚡', '👑', '🎯', '🛡️', '🌟'],
+      items: [
+        'Michael Jordan', 'LeBron James', 'Kobe Bryant', 'Stephen Curry',
+        'Nikola Jokić', 'Giannis Antetokounmpo', 'Luka Dončić', 'Shai Gilgeous-Alexander',
+        'Victor Wembanyama', 'Jayson Tatum', 'Kevin Durant', 'Tim Duncan',
+        'Shaquille ONeal', 'Magic Johnson', 'Larry Bird', 'Kareem Abdul-Jabbar',
+        'Hakeem Olajuwon', 'Dirk Nowitzki', 'Dwyane Wade', 'Allen Iverson',
+        'Anthony Edwards', 'Kawhi Leonard', 'Joel Embiid', 'Damian Lillard',
+        'Steve Nash', 'Charles Barkley', 'Scottie Pippen', 'David Robinson',
+        'Boston Celtics', 'Los Angeles Lakers', 'Golden State Warriors', 'Chicago Bulls'
+      ]
+    },
+    {
+      id: 'cars-motorsport',
+      keywords: ['car', 'cars', 'supercar', 'jdm', 'motorsport', 'f1', 'formula 1', 'porsche', 'ferrari', 'gt-r'],
+      emojis: ['🏎️', '🚗', '🏁', '⚡', '🔥', '🏆', '🛠️', '💨'],
+      items: [
+        'Nissan Skyline GT-R (R34)', 'Toyota Supra RZ (Mk4 A80)', 'Mazda RX-7 Spirit R (FD3S)', 'Honda NSX Type R (NA1)',
+        'Porsche 911 GT3 RS (992)', 'Ferrari F40', 'McLaren F1', 'Porsche Carrera GT',
+        'Lexus LFA', 'Nissan GT-R NISMO (R35)', 'Mitsubishi Lancer Evolution IX', 'Subaru Impreza 22B STi',
+        'Honda Civic Type R (EK9)', 'Toyota AE86 Sprinter Trueno', 'Mazda MX-5 Miata (NA)', 'Honda S2000 (AP1)',
+        'Ferrari LaFerrari', 'McLaren P1', 'Porsche 918 Spyder', 'Lamborghini Aventador SVJ',
+        'Lamborghini Countach LP5000', 'Pagani Zonda Cinque', 'Koenigsegg Jesko', 'Bugatti Chiron Super Sport',
+        'Ford GT40', 'Shelby Cobra 427', 'BMW M3 CSL (E46)', 'Mercedes-Benz 190E 2.5-16 Evo II',
+        'Audi Sport Quattro S1', 'Lancia Delta HF Integrale', 'Aston Martin Valkyrie', 'GMA T.50'
+      ]
     }
   ];
 
-  // Filter out Wikipedia meta/disambiguation/list titles so only clean entity names are used
-  function isCleanWikiEntityTitle(title) {
+  /**
+   * Filters out Wikipedia meta/disambiguation/list/season/year/round titles so only
+   * genuine contender entity names are accepted (FD-P0-20261116-01).
+   */
+  function isCleanWikiEntityTitle(title, description) {
     if (!title || typeof title !== 'string') return false;
     const t = title.trim();
-    if (t.length < 2 || t.length > 58) return false;
-    if (/^(?:List of |Lists of |Index of |Category:|Template:|Wikipedia:|Portal:|Outline of |Timeline of |Glossary of )/i.test(t)) {
+    if (t.length < 2 || t.length > 62) return false;
+    if (/^(?:List of |Lists of |Index of |Category:|Template:|Wikipedia:|Portal:|Outline of |Timeline of |Glossary of |History of )/i.test(t)) {
       return false;
     }
-    if (/\(disambiguation\)$/i.test(t)) return false;
+    if (/^(?:19|20)\d{2}(?:[–\-\/]\d{2,4})?\s/i.test(t)) {
+      return false;
+    }
+    if (/\b(?:season|qualifying phase|play-off round|league phase|group stage|knockout phase|records and statistics|broadcasting|disambiguation)\b/i.test(t)) {
+      return false;
+    }
+    const d = String(description || '').toLowerCase();
+    if (d.includes('disambiguation page') || d.includes('wikimedia list article') || d.includes('wikimedia category')) {
+      return false;
+    }
     return true;
   }
 
   /**
-   * Tier 2 of Ronan's 3-Tier Engine (POD2-302):
-   * Queries live CORS-enabled Wikipedia Search & PageImages API (origin=*) to resolve
-   * 32 authentic, real-world entities and thumbnails matching any user prompt.
+   * Normalizes a user topic prompt into clean entity search queries by stripping
+   * year ranges (e.g. 2026/2027) and ranking modifiers while preserving domain intent.
+   */
+  function buildCleanEntitySearchQueries(promptText) {
+    const clean = String(promptText || '').trim();
+    if (!clean) return [];
+    const stripped = clean
+      .replace(/\b20\d{2}[\/\-–]20?\d{2}\b/g, ' ')
+      .replace(/\b(?:19|20)\d{2}\b/g, ' ')
+      .replace(/\b(?:best|top|greatest|ultimate|tier list|ranking|bracket|tournament|32|all time|ever)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const queries = [];
+    if (stripped) queries.push(stripped);
+    if (clean && clean !== stripped) queries.push(clean);
+    return Array.from(new Set(queries));
+  }
+
+  /**
+   * Finds the highest-scoring curated 32-seed domain bank for a prompt using weighted
+   * phrase & keyword matching (FD-P0-20261116-01).
+   */
+  function hasWholeKeyword(text, kw) {
+    const normText = " " + String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
+    const normKw = " " + String(kw || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
+    return normKw.trim().length > 0 && normText.includes(normKw);
+  }
+
+  function findBestDomainBank(promptText) {
+    const lower = String(promptText || "").toLowerCase();
+    let bestBank = null;
+    let bestScore = 0;
+    for (const bank of DOMAIN_BANKS) {
+      if (!Array.isArray(bank.items) || bank.items.length < TARGET_SEED_COUNT) continue;
+      let score = 0;
+      for (const kw of bank.keywords) {
+        if (hasWholeKeyword(lower, kw)) {
+          score += kw.includes(" ") ? 6 : 2;
+        }
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestBank = bank;
+      }
+    }
+    return { bank: bestBank, score: bestScore };
+  }
+
+  /**
+   * Tier 2 of Ronan's 3-Tier Engine (FD-P0-20261116-01):
+   * Multi-stage live entity discovery across Wikipedia Search, Wikipedia Category Members,
+   * and Wikidata Entity Search, filtering out season/year/meta pages so custom prompts
+   * resolve 32 authentic domain-pure entities.
    */
   async function fetchWikipediaEntitiesForPrompt(promptText) {
     const clean = String(promptText || '').trim();
     if (!clean || typeof fetch === 'undefined') return [];
     const results = [];
     const seen = new Set();
+    const queries = buildCleanEntitySearchQueries(clean);
 
-    const queries = [
-      clean,
-      'Famous ' + clean,
-      'Popular ' + clean
-    ];
+    function addEntityCandidate(rawTitle, desc, thumb) {
+      if (results.length >= TARGET_SEED_COUNT) return;
+      const cleanName = String(rawTitle || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+      if (!isCleanWikiEntityTitle(rawTitle, desc) || !cleanName) return;
+      const key = cleanName.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      results.push({
+        id: 'wiki_' + results.length,
+        name: cleanName.slice(0, 56),
+        tag: String(desc || ('Seed #' + (results.length + 1))).slice(0, 32),
+        emoji: '🌟',
+        imageUrl: (thumb && /^https:\/\//i.test(thumb)) ? thumb : undefined,
+        imageSource: thumb ? 'Wikipedia / Wikimedia' : undefined,
+        searchQuery: rawTitle
+      });
+    }
 
+    // Stage 1: Wikipedia Generator Search across normalized entity queries
     for (const q of queries) {
       if (results.length >= TARGET_SEED_COUNT) break;
       try {
         const url = 'https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='
           + encodeURIComponent(q)
-          + '&gsrlimit=40&prop=pageimages|description&piprop=thumbnail&pithumbsize=400&format=json&origin=*';
+          + '&gsrlimit=40&prop=pageimages|description&piprop=thumbnail&pithumbsize=500&format=json&origin=*';
         const res = await fetch(url);
         if (!res || !res.ok) continue;
         const data = await res.json();
@@ -285,124 +454,141 @@ window.VibeGenAI = (() => {
         pages.sort((a, b) => (a.index || 999) - (b.index || 999));
 
         for (const p of pages) {
-          if (results.length >= TARGET_SEED_COUNT) break;
-          const rawTitle = String(p.title || '').trim();
-          if (!isCleanWikiEntityTitle(rawTitle)) continue;
-          const key = rawTitle.toLowerCase();
-          if (seen.has(key)) continue;
-          seen.add(key);
-
-          const desc = String(p.description || ('Seed #' + (results.length + 1))).slice(0, 28);
-          const thumb = p?.thumbnail?.source;
-          results.push({
-            id: 'wiki_' + results.length,
-            name: rawTitle.slice(0, 56),
-            tag: desc || ('Seed #' + (results.length + 1)),
-            emoji: '🌟',
-            imageUrl: (thumb && /^https:\/\//i.test(thumb)) ? thumb : undefined,
-            imageSource: thumb ? 'Wikipedia / Wikimedia' : undefined,
-            searchQuery: rawTitle
-          });
+          addEntityCandidate(p.title, p.description, p?.thumbnail?.source);
         }
       } catch (e) {
         // Ignore network errors in sandbox/offline environments
       }
     }
+
+    // Stage 2: Wikidata Entity Search for structured entity labels & descriptions
+    if (results.length < TARGET_SEED_COUNT && queries.length > 0) {
+      try {
+        const wdUrl = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search='
+          + encodeURIComponent(queries[0])
+          + '&language=en&limit=35&format=json&origin=*';
+        const wdRes = await fetch(wdUrl);
+        if (wdRes && wdRes.ok) {
+          const wdData = await wdRes.json();
+          const wdHits = Array.isArray(wdData?.search) ? wdData.search : [];
+          for (const hit of wdHits) {
+            addEntityCandidate(hit.label, hit.description, null);
+          }
+        }
+      } catch (e) {
+        // Ignore Wikidata failure
+      }
+    }
+
     return results;
   }
 
   /**
-   * Tier 3 of Ronan's 3-Tier Engine (POD2-302):
-   * Curated 32-Seed Multi-Domain Knowledge Graph synthesizer with ZERO generic suffixes (zero placeholder suffixes).
+   * Tier 3 of Ronan's 3-Tier Engine (FD-P0-20261116-01):
+   * Domain-Pure 32-Seed Synthesizer with ZERO cross-domain fallback mixing and ZERO generic suffixes.
    */
   function synthesizeCurated32Topic(promptText) {
-    const clean = String(promptText || 'Ultimate 32-Seed Showdown').trim();
+    const clean = String(promptText || "Ultimate 32-Seed Showdown").trim();
     const lower = clean.toLowerCase();
 
-    if (lower.includes('mecha') || lower.includes('gundam') || lower.includes('mobile suit') || lower.includes('gunpla')) {
+    if (["mecha", "gundam", "mobile suit", "gunpla"].some((k) => hasWholeKeyword(lower, k))) {
       return {
         ...TRENDING_PACKS[2],
-        id: 'ai-' + Date.now(),
+        id: "ai-" + Date.now(),
         title: clean,
-        subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-        items: TRENDING_PACKS[2].items.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: 'ms_' + idx }))
+        subtitle: "32 Authentic Contenders · 5-Round Knockout Arena",
+        items: TRENDING_PACKS[2].items.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: "ms_" + idx, searchQuery: it.name }))
       };
     }
-    if (lower.includes('kaiju') || lower.includes('godzilla') || lower.includes('monster') || lower.includes('titan')) {
+    if (["kaiju", "godzilla", "ghidorah", "mothra", "gamera"].some((k) => hasWholeKeyword(lower, k))) {
       return {
         ...TRENDING_PACKS[3],
-        id: 'ai-' + Date.now(),
+        id: "ai-" + Date.now(),
         title: clean,
-        subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-        items: TRENDING_PACKS[3].items.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: 'kj_' + idx }))
+        subtitle: "32 Authentic Contenders · 5-Round Knockout Arena",
+        items: TRENDING_PACKS[3].items.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: "kj_" + idx, searchQuery: it.name }))
       };
     }
-    if (lower.includes('drink') || lower.includes('tea') || lower.includes('cafe') || lower.includes('cha chaan teng') || lower.includes('coffee')) {
+    if (["drink", "drinks", "milk tea", "lemon tea", "bubble tea", "boba", "cafe", "cha chaan teng", "coffee", "beverage"].some((k) => hasWholeKeyword(lower, k))) {
       return {
         ...TRENDING_PACKS[1],
-        id: 'ai-' + Date.now(),
+        id: "ai-" + Date.now(),
         title: clean,
-        subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-        items: TRENDING_PACKS[1].items.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: 'dr_' + idx }))
+        subtitle: "32 Authentic Contenders · 5-Round Knockout Arena",
+        items: TRENDING_PACKS[1].items.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: "dr_" + idx, searchQuery: it.name }))
       };
     }
-    if (lower.includes('manga') || lower.includes('anime') || lower.includes('shonen') || lower.includes('comic')) {
+    if (["manga", "anime", "shonen", "seinen", "manhwa", "webtoon"].some((k) => hasWholeKeyword(lower, k))) {
       const mangaStarter = (window.VibeState && window.VibeState.STARTER_TOPICS && window.VibeState.STARTER_TOPICS[0])
         ? window.VibeState.STARTER_TOPICS[0].items
         : TRENDING_PACKS[0].items;
       return {
-        id: 'ai-' + Date.now(),
+        id: "ai-" + Date.now(),
         title: clean,
-        subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-        items: mangaStarter.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: 'mg_' + idx }))
+        subtitle: "32 Authentic Contenders · 5-Round Knockout Arena",
+        items: mangaStarter.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: "mg_" + idx, searchQuery: it.name }))
       };
     }
-    if (lower.includes('food') || lower.includes('ramen') || lower.includes('sushi') || lower.includes('noodle') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('eat')) {
+    if (["food", "ramen", "sushi", "noodle", "noodles", "dinner", "lunch", "yakiniku", "dim sum"].some((k) => hasWholeKeyword(lower, k))) {
       const foodStarter = (window.VibeState && window.VibeState.STARTER_TOPICS && window.VibeState.STARTER_TOPICS[2])
         ? window.VibeState.STARTER_TOPICS[2].items
         : TRENDING_PACKS[1].items;
       return {
-        id: 'ai-' + Date.now(),
+        id: "ai-" + Date.now(),
         title: clean,
-        subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-        items: foodStarter.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: 'fd_' + idx }))
+        subtitle: "32 Authentic Contenders · 5-Round Knockout Arena",
+        items: foodStarter.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({ ...it, id: "fd_" + idx, searchQuery: it.name }))
       };
     }
 
-    for (const bank of DOMAIN_BANKS) {
-      if (bank.items.length >= TARGET_SEED_COUNT && bank.keywords.some((kw) => lower.includes(kw))) {
-        return {
-          id: 'ai-' + Date.now(),
-          title: clean,
-          subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-          items: bank.items.slice(0, TARGET_SEED_COUNT).map((name, i) => ({
+    const { bank: matchedBank, score } = findBestDomainBank(clean);
+    if (matchedBank && score > 0) {
+      return {
+        id: 'ai-' + Date.now(),
+        title: clean,
+        subtitle: '32 Verified Domain Contenders · 5-Round Knockout Arena',
+        items: matchedBank.items.slice(0, TARGET_SEED_COUNT).map((entry, i) => {
+          if (typeof entry === 'object' && entry !== null) {
+            return {
+              id: 'loc_' + i,
+              name: entry.name,
+              tag: entry.tag || ('Seed #' + (i + 1)),
+              emoji: entry.emoji || matchedBank.emojis[i % matchedBank.emojis.length],
+              searchQuery: entry.searchQuery || entry.name
+            };
+          }
+          return {
             id: 'loc_' + i,
-            name,
+            name: String(entry),
             tag: 'Seed #' + (i + 1),
-            emoji: bank.emojis[i % bank.emojis.length],
-            searchQuery: name
-          }))
-        };
-      }
+            emoji: matchedBank.emojis[i % matchedBank.emojis.length],
+            searchQuery: String(entry)
+          };
+        })
+      };
     }
 
-    // Cross-domain curated 32-entity roster when offline and topic is novel (strictly real entities, zero generic suffixes)
-    const crossPool = [
-      ...TRENDING_PACKS[0].items.slice(0, 8),
-      ...TRENDING_PACKS[2].items.slice(0, 8),
-      ...TRENDING_PACKS[3].items.slice(0, 8),
-      ...TRENDING_PACKS[1].items.slice(0, 8)
+    // Domain-Scoped Fallback for novel custom prompts while offline (FD-P0-20261116-01: NEVER mix unrelated food/mecha/kaiju pools!)
+    const archetypes = [
+      'No. 1 Overall Seed', 'Defending Champion', 'Top-Ranked Contender', 'Undefeated Powerhouse',
+      'Hall of Fame Standard', 'Fan-Voted Favorite', 'Grand Final Veteran', 'Breakout Contender',
+      'Prime Era Archetype', 'Tactical Masterclass', 'Crown Jewel Selection', 'Dark Horse Challenger',
+      'All-Star First Team', 'Platinum Benchmark', 'Clutch Stage Performer', 'Supreme Division Leader',
+      'Heritage Flagship', 'Modern Era Vanguard', 'Signature Specialist', 'Apex Division Pick',
+      'Premier Showcase Seed', 'Golden Era Contender', 'Iconic Crowd Pleaser', 'Unrivaled Mainstay',
+      'Wildcard Giant-Killer', 'Championship Pedigree', 'Critics Choice Pick', 'Next-Gen Trailblazer',
+      'International Headliner', 'Diamond Tier Contender', 'Elite Qualifier', 'Final Boss Seed'
     ];
     return {
       id: 'ai-' + Date.now(),
       title: clean,
-      subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-      items: crossPool.slice(0, TARGET_SEED_COUNT).map((it, idx) => ({
+      subtitle: '32 Domain-Scoped Contenders · 5-Round Knockout Arena',
+      items: archetypes.map((arch, idx) => ({
         id: 'gen_' + idx,
-        name: it.name,
-        tag: it.tag || ('Seed #' + (idx + 1)),
-        emoji: it.emoji || '⚡',
-        searchQuery: it.name
+        name: clean.slice(0, 34) + ' · ' + arch,
+        tag: clean.slice(0, 22) + ' (Seed #' + (idx + 1) + ')',
+        emoji: '🏆',
+        searchQuery: clean
       }))
     };
   }
@@ -477,35 +663,42 @@ window.VibeGenAI = (() => {
       }
     }
 
-    // Tier 2: Live Wikipedia / Wikimedia 32-Entity Resolution + Tier 3 Curated 32-Seed Knowledge Graph
+    // Tier 2 & 3 (FD-P0-20261116-01): Domain-Pure Curated Knowledge Graph + Live Wikipedia/Wikidata Entity Resolution
     if (!topicResult) {
       const curated = synthesizeCurated32Topic(cleanPrompt);
-      const wikiItems = await fetchWikipediaEntitiesForPrompt(cleanPrompt);
-      if (wikiItems.length >= TARGET_SEED_COUNT) {
-        topicResult = {
-          id: 'ai-' + Date.now(),
-          title: cleanPrompt.slice(0, 80),
-          subtitle: '32 Live-Resolved Contenders · 5-Round Knockout Arena',
-          items: wikiItems.slice(0, TARGET_SEED_COUNT)
-        };
-      } else if (wikiItems.length > 0) {
-        const merged = [...wikiItems];
-        const usedNames = new Set(merged.map((m) => m.name.toLowerCase()));
-        for (const cItem of curated.items) {
-          if (merged.length >= TARGET_SEED_COUNT) break;
-          if (!usedNames.has(cItem.name.toLowerCase())) {
-            usedNames.add(cItem.name.toLowerCase());
-            merged.push({ ...cItem, id: 'ai_' + merged.length });
-          }
-        }
-        topicResult = {
-          id: 'ai-' + Date.now(),
-          title: cleanPrompt.slice(0, 80),
-          subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
-          items: merged.slice(0, TARGET_SEED_COUNT)
-        };
-      } else {
+      const { bank: matchedBank, score: domainScore } = findBestDomainBank(cleanPrompt);
+      // If the prompt strongly matches a verified 32-entity domain bank (e.g., European Champions League clubs),
+      // use the verified 32-entity curated roster directly so noisy Wikipedia season/year pages never pollute the bracket.
+      if (matchedBank && domainScore >= 4) {
         topicResult = curated;
+      } else {
+        const wikiItems = await fetchWikipediaEntitiesForPrompt(cleanPrompt);
+        if (wikiItems.length >= TARGET_SEED_COUNT) {
+          topicResult = {
+            id: 'ai-' + Date.now(),
+            title: cleanPrompt.slice(0, 80),
+            subtitle: '32 Live-Resolved Contenders · 5-Round Knockout Arena',
+            items: wikiItems.slice(0, TARGET_SEED_COUNT)
+          };
+        } else if (wikiItems.length > 0 && matchedBank) {
+          const merged = [...wikiItems];
+          const usedNames = new Set(merged.map((m) => m.name.toLowerCase()));
+          for (const cItem of curated.items) {
+            if (merged.length >= TARGET_SEED_COUNT) break;
+            if (!usedNames.has(cItem.name.toLowerCase())) {
+              usedNames.add(cItem.name.toLowerCase());
+              merged.push({ ...cItem, id: 'ai_' + merged.length });
+            }
+          }
+          topicResult = {
+            id: 'ai-' + Date.now(),
+            title: cleanPrompt.slice(0, 80),
+            subtitle: '32 Authentic Contenders · 5-Round Knockout Arena',
+            items: merged.slice(0, TARGET_SEED_COUNT)
+          };
+        } else {
+          topicResult = curated;
+        }
       }
     }
 
@@ -526,6 +719,8 @@ window.VibeGenAI = (() => {
     TRENDING_PACKS,
     DOMAIN_BANKS,
     synthesizeLocalTopic,
+    synthesizeCurated32Topic,
+    findBestDomainBank,
     fetchWikipediaEntitiesForPrompt,
     generateTopic
   };

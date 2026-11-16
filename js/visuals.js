@@ -1,4 +1,4 @@
-// Version: 2.5.0 | Last Modified: 2026-11-15 22:14 HKT
+// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
 /**
  * File: js/visuals.js
  * Description: Contextual <Seed Name> <Arena Topic> 3-Provider Real-Time Seed Image Resolver (Google Image Custom Search + Wikipedia PageImages/Wikimedia Commons + Openverse CC0/CC-BY REST API), 1-Tap Seed Photo Cycler, CORS-safe Canvas DataURL converter, procedural SVG fallback banner generator, and HTML5 Canvas particle/confetti & diagonal VS clash shockwave engine.
@@ -10,6 +10,7 @@
  *   - v2.3.0 (2026-11-14 22:35 HKT): Implemented POD2-303 (FD-P0-20261114-03) real-time seed image lookup via Google Image API / Wikipedia REST pageimages / Wikimedia Commons with strict https:// validation and NetHustlePhotoStore IndexedDB caching.
  *   - v2.4.0 (2026-11-15 10:36 HKT): Implemented POD2-401 3-Provider CORS Image Fetcher cascading across Google Custom Search, Wikipedia/Wikimedia Commons, and Openverse CC REST API, caching up to 3 candidate URLs per seed and adding cycleSeedPhoto().
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-501 (FD-P0-20261115-01) buildContextualImageQueries(item, topicTitle) ("<Seed Name> <Cleaned Arena Topic>" -> "<Seed Name> <Item Tag>" -> "<Seed Name>") across all 3 providers with topic-scoped cache keys, and upgraded triggerClashSparks() with diagonal cross-section VS lightning shockwaves (POD2-503).
+ *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-02 & POD2-601: 5-stage live image cascade (Exact Title Redirects, Contextual Search, Lead Image File Info, Wikimedia Commons gsrlimit=10, Openverse CC), scoreImageCandidate relevance & SVG/flag filter, and >=120px dimension guard.
  */
 window.VibeVisuals = (() => {
   const PALETTES = [
@@ -175,18 +176,126 @@ window.VibeVisuals = (() => {
   }
 
   /**
-   * POD2-401 & POD2-501 (FD-P0-20261115-01): Contextual Multi-Provider Real-Time Seed Image Resolver.
-   * Uses buildContextualImageQueries(item, topicTitle) ("<Seed Name> <Arena Topic>" -> "<Seed Name> <Tag>" -> "<Seed Name>")
-   * across Google Custom Search, Wikipedia PageImages (gsrlimit=6), Wikimedia Commons (gsrlimit=6), and Openverse CC API,
-   * scoping cache keys by (queryText + '|' + cleanTopic).toLowerCase().
+   * FD-P0-20261116-02 & POD2-601: Scores a candidate image URL and title/metadata
+   * against the seed item and arena topic, rejecting country flags, blank maps,
+   * generic sports icons, UI symbols, and stub graphics.
+   */
+  function scoreImageCandidate(candidateUrl, candidateTitle, item, topicTitle) {
+    if (!isSafeImageUrl(candidateUrl)) return -100;
+    const lowerUrl = String(candidateUrl).toLowerCase();
+    const lowerTitle = String(candidateTitle || '').toLowerCase();
+
+    const rejectSubstrings = [
+      'flag_of_', 'flag%20of', 'blank_map', 'location_map', 'locator_map',
+      'disambig', 'commons-logo', 'wikimedia-logo', 'question_book', 'ambox',
+      'crystal_clear', 'nuvola_', 'octicons-', 'font_awesome', 'padlock',
+      'increase2', 'decrease2', 'steady2', 'soccerball.svg', 'football_iu_1996',
+      'kit_body', 'kit_left_arm', 'kit_right_arm', 'kit_shorts', 'kit_socks',
+      'red_card', 'yellow_card', '1x1.png', 'transparent.gif', 'replace_this_image',
+      'no_free_image', 'defaut.svg', 'default.svg', 'p_vip.svg', 'portal-puzzle'
+    ];
+    for (const pat of rejectSubstrings) {
+      if (lowerUrl.includes(pat) || lowerTitle.includes(pat)) {
+        return -100;
+      }
+    }
+
+    let score = 20;
+    if (/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(lowerUrl)) {
+      score += 18;
+    } else if (/\.svg(?:\?|$)/i.test(lowerUrl)) {
+      score += 4;
+    }
+
+    const rawSeedName = String((item && (item.searchQuery || item.name)) || '').toLowerCase();
+    const tokens = rawSeedName
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length >= 3 && !['the', 'and', 'for', 'fc', 'cf', 'sc', 'ac', 'seed'].includes(t));
+
+    for (const tok of tokens) {
+      if (lowerTitle.includes(tok)) score += 20;
+      if (lowerUrl.includes(tok)) score += 14;
+    }
+
+    const topicTokens = String(topicTitle || '').toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length >= 4);
+    for (const tTok of topicTokens) {
+      if (lowerTitle.includes(tTok)) score += 4;
+    }
+
+    return score;
+  }
+
+  /**
+   * Verifies that a remote image URL decodes with naturalWidth >= 120 and naturalHeight >= 120
+   * in browser environments (FD-P0-20261116-02 & POD2-601).
+   */
+  function verifyImageMinDimensions(url) {
+    return new Promise((resolve) => {
+      if (typeof Image === 'undefined' || typeof document === 'undefined') {
+        resolve(true);
+        return;
+      }
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (!settled) { settled = true; resolve(true); }
+      }, 2200);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const w = Number(img.naturalWidth || img.width || 200);
+        const h = Number(img.naturalHeight || img.height || 200);
+        resolve(w >= 120 && h >= 120);
+      };
+      img.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(false);
+      };
+      img.src = url;
+    });
+  }
+
+  /**
+   * FD-P0-20261116-02 & POD2-601: 5-Stage High-Completion Contextual Seed Image Resolver.
+   * Cascade:
+   *   1. Exact Wikipedia Page Title lookup (titles=<cleanName>&redirects=1&prop=pageimages&pithumbsize=500)
+   *   2. Contextual & Exact Wikipedia Generator Search (gsrlimit=8&prop=pageimages&pithumbsize=500)
+   *   3. Wikipedia Article Lead/Infobox Image Fallback (prop=images -> imageinfo iiurlwidth=500)
+   *   4. Wikimedia Commons Direct Search (gsrnamespace=6, gsrlimit=10, iiurlwidth=500)
+   *   5. Openverse CC0 / CC-BY API (page_size=6)
+   * All candidates are scored via scoreImageCandidate() and verified >= 120x120px.
    */
   async function fetchRealtimeSeedImage(item, topicTitle, options = {}) {
     if (!item || !item.name) return null;
+
+    // Respect user-pinned custom photo in VibeState / NetHustlePhotoStore
+    if (window.VibeState && window.VibeState.getContenderPhoto) {
+      const pinned = window.VibeState.getContenderPhoto(item.id);
+      if (pinned && isSafeImageUrl(pinned)) {
+        item.imageUrl = pinned;
+        item.imageSource = pinned.startsWith('data:') ? 'Pinned Custom Photo' : 'Pinned Image URL';
+        return pinned;
+      }
+    }
+
+    const cleanEntityName = String(item.searchQuery || item.name)
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .replace(/\s*·\s*.*$/, '')
+      .replace(/\s*—\s*.*$/, '')
+      .trim();
     const queries = buildContextualImageQueries(item, topicTitle);
-    const primaryQuery = queries[0] || String(item.name).trim();
+    const primaryQuery = queries[0] || cleanEntityName;
     const contextualKey = (window.NetHustlePhotoStore && window.NetHustlePhotoStore.buildContextualCacheKey)
-      ? window.NetHustlePhotoStore.buildContextualCacheKey(item.searchQuery || item.name, topicTitle)
-      : (primaryQuery + '|' + String(topicTitle || '')).toLowerCase();
+      ? window.NetHustlePhotoStore.buildContextualCacheKey(cleanEntityName, topicTitle)
+      : (cleanEntityName + '|' + String(topicTitle || '')).toLowerCase();
 
     if (!options.forceRefresh && item.imageUrl && isSafeImageUrl(item.imageUrl) && Array.isArray(item.imageCandidates) && item.imageCandidates.length > 0 && item.contextualCacheKey === contextualKey) {
       return item.imageUrl;
@@ -197,17 +306,24 @@ window.VibeVisuals = (() => {
     }
 
     const lookupPromise = (async () => {
-      const candidates = [];
-      const addCandidate = (url, sourceLabel) => {
-        if (isSafeImageUrl(url) && !candidates.some((c) => c.url === url) && candidates.length < 3) {
-          candidates.push({ url: url.trim(), source: sourceLabel });
+      const scoredPool = [];
+      const seenUrls = new Set();
+
+      const addScoredCandidate = (url, titleMeta, sourceLabel, bonus = 0) => {
+        if (!isSafeImageUrl(url)) return;
+        const cleanUrl = url.trim();
+        if (seenUrls.has(cleanUrl)) return;
+        const sc = scoreImageCandidate(cleanUrl, titleMeta, item, topicTitle) + bonus;
+        if (sc > 0) {
+          seenUrls.add(cleanUrl);
+          scoredPool.push({ url: cleanUrl, source: sourceLabel, score: sc });
         }
       };
 
-      // Provider 1: Optional Google Image Custom Search JSON API (with contextual query)
+      // Stage 0: Optional Google Image Custom Search JSON API
       if (options.googleApiKey && options.googleCx) {
         try {
-          const gUrl = 'https://customsearch.googleapis.com/customsearch/v1?searchType=image&num=3&safe=active&key='
+          const gUrl = 'https://customsearch.googleapis.com/customsearch/v1?searchType=image&num=4&safe=active&key='
             + encodeURIComponent(options.googleApiKey)
             + '&cx=' + encodeURIComponent(options.googleCx)
             + '&q=' + encodeURIComponent(primaryQuery);
@@ -216,62 +332,121 @@ window.VibeVisuals = (() => {
             const gData = await gRes.json();
             const gItems = Array.isArray(gData?.items) ? gData.items : [];
             gItems.forEach((gi) => {
-              const link = gi?.link || gi?.image?.thumbnailLink;
-              addCandidate(link, 'Google Images');
+              addScoredCandidate(gi?.link || gi?.image?.thumbnailLink, gi?.title || cleanEntityName, 'Google Images', 35);
             });
           }
         } catch (_) {}
       }
 
-      // Provider 2A: Live Wikipedia PageImages API using contextual queries (origin=*, gsrlimit=6, pithumbsize=400)
-      for (const qStr of queries) {
-        if (candidates.length >= 3) break;
+      // Stage 1: Exact Wikipedia Page Title Lookup with redirects=1 (Highest Accuracy for Clubs, Games, Movies, People)
+      const exactTitlesToTry = Array.from(new Set([String(item.searchQuery || '').trim(), cleanEntityName].filter(Boolean)));
+      for (const exactTitle of exactTitlesToTry) {
+        if (scoredPool.length >= 2) break;
         try {
-          const wikiUrl = 'https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='
-            + encodeURIComponent(qStr)
-            + '&gsrlimit=6&prop=pageimages&piprop=thumbnail&pithumbsize=400&format=json&origin=*';
-          const wRes = await fetch(wikiUrl);
-          if (wRes && wRes.ok) {
-            const wData = await wRes.json();
-            const pages = wData?.query?.pages ? Object.values(wData.query.pages) : [];
-            pages.sort((a, b) => (a.index || 999) - (b.index || 999));
+          const exactWikiUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles='
+            + encodeURIComponent(exactTitle)
+            + '&redirects=1&prop=pageimages&piprop=thumbnail|original&pithumbsize=500&format=json&origin=*';
+          const ewRes = await fetch(exactWikiUrl);
+          if (ewRes && ewRes.ok) {
+            const ewData = await ewRes.json();
+            const pages = ewData?.query?.pages ? Object.values(ewData.query.pages) : [];
             for (const p of pages) {
-              const thumb = p?.thumbnail?.source;
-              addCandidate(thumb, 'Wikimedia / Wikipedia');
-            }
-          }
-        } catch (_) {}
-      }
-
-      // Provider 2B: Wikimedia Commons Direct Image Search using contextual queries (origin=*, gsrlimit=6)
-      for (const qStr of queries) {
-        if (candidates.length >= 3) break;
-        try {
-          const commonsUrl = 'https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch='
-            + encodeURIComponent(qStr)
-            + '&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*';
-          const cRes = await fetch(commonsUrl);
-          if (cRes && cRes.ok) {
-            const cData = await cRes.json();
-            const cPages = cData?.query?.pages ? Object.values(cData.query.pages) : [];
-            for (const cp of cPages) {
-              const thumbUrl = cp?.imageinfo?.[0]?.thumburl || cp?.imageinfo?.[0]?.url;
-              if (thumbUrl && /\.(?:jpg|jpeg|png|webp)$/i.test(thumbUrl)) {
-                addCandidate(thumbUrl, 'Wikimedia Commons');
+              if (!p || p.missing !== undefined) continue;
+              const thumb = p?.thumbnail?.source || p?.original?.source;
+              if (thumb) {
+                addScoredCandidate(thumb, p.title || exactTitle, 'Wikipedia Lead Image', 40);
               }
             }
           }
         } catch (_) {}
       }
 
-      // Provider 3: Openverse CC0 / CC-BY Public REST API using contextual query (POD2-401 & POD2-501)
-      if (candidates.length < 3) {
+      // Stage 2: Contextual & Exact Wikipedia Generator Search (gsrlimit=8, pithumbsize=500)
+      const wikiSearchList = Array.from(new Set([cleanEntityName, ...queries]));
+      for (const qStr of wikiSearchList) {
+        if (scoredPool.length >= 3) break;
+        try {
+          const wikiUrl = 'https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='
+            + encodeURIComponent(qStr)
+            + '&gsrlimit=8&prop=pageimages&piprop=thumbnail|original&pithumbsize=500&format=json&origin=*';
+          const wRes = await fetch(wikiUrl);
+          if (wRes && wRes.ok) {
+            const wData = await wRes.json();
+            const pages = wData?.query?.pages ? Object.values(wData.query.pages) : [];
+            pages.sort((a, b) => (a.index || 999) - (b.index || 999));
+            pages.forEach((p, idx) => {
+              const thumb = p?.thumbnail?.source || p?.original?.source;
+              const rankBonus = Math.max(0, 24 - idx * 4);
+              addScoredCandidate(thumb, p.title || qStr, 'Wikimedia / Wikipedia', rankBonus);
+            });
+          }
+        } catch (_) {}
+      }
+
+      // Stage 3: Wikipedia Article Images Array Fallback (prop=images -> imageinfo) for fair-use crests/posters
+      if (scoredPool.length === 0 && cleanEntityName) {
+        try {
+          const imgListUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles='
+            + encodeURIComponent(cleanEntityName)
+            + '&redirects=1&prop=images&imlimit=10&format=json&origin=*';
+          const ilRes = await fetch(imgListUrl);
+          if (ilRes && ilRes.ok) {
+            const ilData = await ilRes.json();
+            const pages = ilData?.query?.pages ? Object.values(ilData.query.pages) : [];
+            const fileTitles = [];
+            for (const p of pages) {
+              const imgs = Array.isArray(p?.images) ? p.images : [];
+              for (const im of imgs) {
+                if (im?.title && scoreImageCandidate('https://en.wikipedia.org/wiki/' + encodeURIComponent(im.title), im.title, item, topicTitle) > 0) {
+                  fileTitles.push(im.title);
+                }
+              }
+            }
+            if (fileTitles.length > 0) {
+              const infoUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles='
+                + encodeURIComponent(fileTitles.slice(0, 4).join('|'))
+                + '&prop=imageinfo&iiprop=url&iiurlwidth=500&format=json&origin=*';
+              const infRes = await fetch(infoUrl);
+              if (infRes && infRes.ok) {
+                const infData = await infRes.json();
+                const fPages = infData?.query?.pages ? Object.values(infData.query.pages) : [];
+                for (const fp of fPages) {
+                  const u = fp?.imageinfo?.[0]?.thumburl || fp?.imageinfo?.[0]?.url;
+                  addScoredCandidate(u, fp.title || cleanEntityName, 'Wikipedia Article Crest/Photo', 22);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Stage 4: Wikimedia Commons Direct Search (gsrnamespace=6, gsrlimit=10, iiurlwidth=500)
+      for (const qStr of wikiSearchList) {
+        if (scoredPool.length >= 3) break;
+        try {
+          const commonsUrl = 'https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch='
+            + encodeURIComponent(qStr)
+            + '&gsrlimit=10&prop=imageinfo&iiprop=url&iiurlwidth=500&format=json&origin=*';
+          const cRes = await fetch(commonsUrl);
+          if (cRes && cRes.ok) {
+            const cData = await cRes.json();
+            const cPages = cData?.query?.pages ? Object.values(cData.query.pages) : [];
+            for (const cp of cPages) {
+              const thumbUrl = cp?.imageinfo?.[0]?.thumburl || cp?.imageinfo?.[0]?.url;
+              addScoredCandidate(thumbUrl, cp?.title || qStr, 'Wikimedia Commons', 14);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Stage 5: Openverse CC0 / CC-BY Public REST API
+      if (scoredPool.length < 3) {
         const openverseEndpoints = [
-          'https://api.openverse.org/v1/images/?q=' + encodeURIComponent(primaryQuery) + '&page_size=4&format=json',
-          'https://api.openverse.engineering/v1/images/?q=' + encodeURIComponent(primaryQuery) + '&page_size=4&format=json'
+          'https://api.openverse.org/v1/images/?q=' + encodeURIComponent(cleanEntityName) + '&page_size=6&format=json',
+          'https://api.openverse.engineering/v1/images/?q=' + encodeURIComponent(cleanEntityName) + '&page_size=6&format=json'
         ];
         for (const ovUrl of openverseEndpoints) {
-          if (candidates.length >= 3) break;
+          if (scoredPool.length >= 3) break;
           try {
             const ovRes = await fetch(ovUrl);
             if (ovRes && ovRes.ok) {
@@ -280,19 +455,29 @@ window.VibeVisuals = (() => {
               for (const r of results) {
                 const thumb = r?.thumbnail || r?.url;
                 const creator = r?.creator ? ('Openverse CC (' + String(r.creator).slice(0, 20) + ')') : 'Openverse CC';
-                addCandidate(thumb, creator);
+                addScoredCandidate(thumb, r?.title || cleanEntityName, creator, 8);
               }
             }
           } catch (_) {}
         }
       }
 
-      if (candidates.length > 0) {
-        item.imageCandidates = candidates.map((c) => c.url);
-        item.imageSources = candidates.map((c) => c.source);
+      scoredPool.sort((a, b) => b.score - a.score);
+      const verifiedCandidates = [];
+      for (const cand of scoredPool) {
+        if (verifiedCandidates.length >= 3) break;
+        const okDim = await verifyImageMinDimensions(cand.url);
+        if (okDim) {
+          verifiedCandidates.push(cand);
+        }
+      }
+
+      if (verifiedCandidates.length > 0) {
+        item.imageCandidates = verifiedCandidates.map((c) => c.url);
+        item.imageSources = verifiedCandidates.map((c) => c.source);
         item.imageCandidateIdx = 0;
-        item.imageUrl = candidates[0].url;
-        item.imageSource = candidates[0].source;
+        item.imageUrl = verifiedCandidates[0].url;
+        item.imageSource = verifiedCandidates[0].source;
         item.contextualCacheKey = contextualKey;
         if (window.NetHustlePhotoStore && window.NetHustlePhotoStore.putCandidatePhotos) {
           window.NetHustlePhotoStore.putCandidatePhotos(item.id, item.imageCandidates, contextualKey);
@@ -448,6 +633,8 @@ window.VibeVisuals = (() => {
 
   return {
     isSafeImageUrl,
+    scoreImageCandidate,
+    verifyImageMinDimensions,
     buildContextualImageQueries,
     getProceduralSvgBannerUrl,
     getContenderBannerUrl,
