@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -13,6 +13,7 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Wired 3-Provider CORS Image Fetcher & 1-Tap Seed Photo Cycler (#btnLeftCyclePhoto / #btnRightCyclePhoto, POD2-401), 4 Co-Star Hero Scene Presets & Live Sliders (#posterPresetSelect / #posterPhotoScaleSlider / #posterPhotoOffsetSlider / #posterRimGlowSlider, POD2-402), 1080p/4K Tier-List Share Poster export with Robbery Fixed badges (#btnExportTierPoster / #btnExportTierPoster4k, POD2-403), and #challenge= Beat-My-Bracket Taste Compatibility Scorecard (#btnCopyChallengeLink / #challengeScorecard, POD2-404).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Wired contextual <Seed Name> <Arena Topic> photo fetching & cycling (POD2-501), removed remaining 'Classics' prompt hint (POD2-502), wired overlapping diagonal VS battle stage shockwaves (POD2-503), and wired the 8-match Round-of-32 Loser-Bracket Placement Battles & exact 2-6-8-8-8 Tier List (POD2-504).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Wired FD-P0-20261116-01..04 & POD2-601..605: 1-tap Pin Image URL (#btnLeftPinUrl / #btnRightPinUrl), 3D diagonal battle card tilt, Vibe Streak HUD (#vibeStreakBadge), Battle of Losers redemption banner, 39-Match Tier Provenance Inspector (#tierProvenanceBar / #btnRefightPlacementMatch), and Dual-Slide / 3s Clash Video exporters.
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-704: wired #photoProgressPill live completion percentage and #btnRetryMissingPhotos 1-tap retry for uncached seeds.
  */
 (function () {
   'use strict';
@@ -76,10 +77,17 @@
 
   function updateSeedImageStatusText() {
     const statusEl = document.getElementById('seedImgStatusText');
-    if (!statusEl) return;
+    const pillEl = document.getElementById('photoProgressPill');
     const topic = window.VibeState.getActiveTopic();
+    const total = topic.items.length || 32;
     const withPhotoCount = topic.items.filter((it) => Boolean(window.VibeState.getContenderPhoto(it.id) || it.imageUrl)).length;
-    statusEl.textContent = '🖼️ Seed Visuals: ' + withPhotoCount + ' / ' + topic.items.length + ' real photos cached (' + topic.items.length + '-Seed Arena)';
+    const pct = Math.round((withPhotoCount / total) * 100);
+    if (statusEl) {
+      statusEl.textContent = '🖼️ Seed Visuals: ' + withPhotoCount + ' / ' + total + ' real photos cached (' + total + '-Seed Arena)';
+    }
+    if (pillEl) {
+      pillEl.textContent = pct + '% Live Coverage (' + withPhotoCount + '/' + total + ')';
+    }
   }
 
   function renderTopicPills() {
@@ -1669,6 +1677,38 @@
       } finally {
         btnExportClashVideo.disabled = false;
         btnExportClashVideo.textContent = '🎬 Export 3s Diagonal VS Clash Clip (.webm)';
+      }
+    });
+  }
+
+
+  // POD2-704: 1-Tap Retry Missing Seed Photos (#btnRetryMissingPhotos)
+  const btnRetryMissingPhotos = document.getElementById('btnRetryMissingPhotos');
+  if (btnRetryMissingPhotos) {
+    btnRetryMissingPhotos.addEventListener('click', async () => {
+      const topic = window.VibeState.getActiveTopic();
+      const missing = topic.items.filter((it) => !window.VibeState.getContenderPhoto(it.id) && !it.imageUrl);
+      if (!missing.length) {
+        showToast('All ' + topic.items.length + ' seed photos are already cached!');
+        updateSeedImageStatusText();
+        return;
+      }
+      btnRetryMissingPhotos.disabled = true;
+      btnRetryMissingPhotos.textContent = '⏳ Retrying ' + missing.length + ' Seeds...';
+      try {
+        let resolvedNow = 0;
+        for (const it of missing) {
+          const u = await window.VibeVisuals.fetchRealtimeSeedImage(it, topic.title, { forceRefresh: true });
+          if (u) resolvedNow++;
+          updateSeedImageStatusText();
+        }
+        renderArena();
+        refreshPosterCanvas();
+        showToast('Resolved ' + resolvedNow + ' additional seed photos via Wikidata & Wikimedia!');
+      } finally {
+        btnRetryMissingPhotos.disabled = false;
+        btnRetryMissingPhotos.textContent = '🔄 Retry Missing Photos';
+        updateSeedImageStatusText();
       }
     });
   }

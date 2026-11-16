@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/photoStore.js
  * Description: Client-side IndexedDB photo vault with automatic localStorage, in-memory fallback, and topic-scoped multi-candidate seed URL array storage (POD2-201, POD2-401 & POD2-501).
@@ -9,12 +9,14 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added putCandidatePhotos() and getCandidatePhotosSync() storing up to 3 candidate https:// image URLs per seed for 1-tap photo cycling (POD2-401).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Added topic-contextual cache key normalization buildContextualCacheKey(queryText, topicTitle) for POD2-501 (FD-P0-20261115-01) so polysemous seed names never collide across different arena topics.
  *   - v2.6.0 (2026-11-16 10:09 HKT): Upgraded to Common Repo v1.5.0: added pinContenderImageUrl(itemId, url) and getPinnedUrlSync(itemId) for 1-tap seed image URL pinning (POD2-601).
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Closed BUG-P1-20261116-02 (POD2-702 / Common Repo v1.6.0): added VALID_STORED_IMG_RE accepting both data:image/ and https:// URLs in putPhoto() and hydrateAll(), and exported pinContenderImageUrl and getPinnedUrlSync.
  */
 window.NetHustlePhotoStore = (() => {
   const DB_NAME = 'NetHustle_VibeBracket_PhotoVault_v1';
   const STORE_NAME = 'contender_photos';
   const LEGACY_KEY = 'vibetrack_custom_images';
   const CANDIDATES_KEY = 'vibetrack_seed_candidates_v25';
+  const VALID_STORED_IMG_RE = /^(?:data:image\/|https:\/\/[a-z0-9.\-_~:\/?#\[\]@!$&'()*+,;=%]+$)/i;
   const memoryCache = {};
   const memoryCandidates = {};
   let dbPromise = null;
@@ -88,7 +90,7 @@ window.NetHustlePhotoStore = (() => {
     if (!dataUrl) {
       delete memoryCache[cleanId];
     } else {
-      if (!String(dataUrl).startsWith('data:image/')) return false;
+      if (!VALID_STORED_IMG_RE.test(String(dataUrl).trim())) return false;
       memoryCache[cleanId] = dataUrl;
     }
     try {
@@ -120,7 +122,7 @@ window.NetHustlePhotoStore = (() => {
         const parsed = JSON.parse(rawLegacy);
         if (parsed && typeof parsed === 'object') {
           Object.keys(parsed).forEach((k) => {
-            if (typeof parsed[k] === 'string' && parsed[k].startsWith('data:image/')) {
+            if (typeof parsed[k] === 'string' && VALID_STORED_IMG_RE.test(parsed[k].trim())) {
               memoryCache[k] = parsed[k];
             }
           });
@@ -150,7 +152,7 @@ window.NetHustlePhotoStore = (() => {
         req.onsuccess = (e) => {
           const cursor = e.target.result;
           if (cursor) {
-            if (typeof cursor.value === 'string' && cursor.value.startsWith('data:image/')) {
+            if (typeof cursor.value === 'string' && VALID_STORED_IMG_RE.test(cursor.value.trim())) {
               memoryCache[cursor.key] = cursor.value;
             }
             cursor.continue();
@@ -166,11 +168,14 @@ window.NetHustlePhotoStore = (() => {
   }
 
   return {
+    VALID_STORED_IMG_RE,
     buildContextualCacheKey,
     putPhoto,
+    pinContenderImageUrl: putPhoto,
     putCandidatePhotos,
     getCandidatePhotosSync,
     hydrateAll,
-    getPhotoSync: (id) => memoryCache[id] || null
+    getPhotoSync: (id) => memoryCache[id] || null,
+    getPinnedUrlSync: (id) => memoryCache[id] || null
   };
 })();

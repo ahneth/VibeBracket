@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -12,6 +12,7 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added autoTiers snapshot & getTierPromotionDelta() for Robbery Fixed badges (POD2-403), posterPreset/scale/offset/rimGlow sliders (POD2-402), and #challenge= activeChallenge hydration (POD2-404).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-502 historical generic-suffix state scrubbing in load() and starter packs, and POD2-504 (FD-P0-20261115-04) exact 2-6-8-8-8 Tier Assignment (S:2, A:6, B:8, C:8, D:8) + 8-match Round-of-32 Loser-Bracket Placement Battles.
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-03 & POD2-603: added getSeedTournamentProvenance(topic, bracket, itemId) for 39-match provenance inspection and reopenPlacementOrBracketMatch() for 1-tap counterfactual re-fights.
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Closed BUG-P1-20261116-02 (POD2-702): updated getContenderPhoto(itemId) to check state.customPhotos[itemId] first so user-pinned https:// URLs immediately override any cached data:image/ thumbnail.
  */
 window.VibeState = (() => {
   const PHOTO_STORAGE_KEY = 'vibetrack_custom_images';
@@ -454,11 +455,14 @@ window.VibeState = (() => {
   }
 
   function getContenderPhoto(itemId) {
+    if (state.customPhotos && state.customPhotos[itemId]) {
+      return state.customPhotos[itemId];
+    }
     if (window.NetHustlePhotoStore) {
       const fromVault = window.NetHustlePhotoStore.getPhotoSync(itemId);
       if (fromVault) return fromVault;
     }
-    return state.customPhotos[itemId] || null;
+    return null;
   }
 
   function getMatchKey(topicId, roundIdx, matchIdx) {

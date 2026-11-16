@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/genai.js
  * Description: 32-Seed GenAI Topic Studio & Real-Time Entity Synthesizer (Tier 1: OpenRouter BYOK 32-Seed LLM JSON; Tier 2: Live Wikipedia/Wikimedia REST Entity Resolution; Tier 3: 32-Seed Multi-Domain Curated Knowledge Graphs) with automatic real-time seed image lookup.
@@ -12,6 +12,7 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Synchronized build metadata and v2.4.0 multi-provider seed image & challenge compatibility integration.
  *   - v2.5.0 (2026-11-15 22:14 HKT): Executed POD2-502 (FD-P0-20261115-02) scrubbing all remaining 'Classic'/'Legend' tokens from TRENDING_PACKS and enforcing domain-strict 32-seed synthesis.
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-01: completely eliminated crossPool cross-domain mixing, added 32-club European Champions League bank + 10 domain-pure banks, and upgraded multi-stage Wikipedia Category/Links/Search + Wikidata entity resolution.
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-703: expanded DOMAIN_BANKS to 12 domain-pure 32-seed knowledge banks (adding K-Pop & Global Artists, AI & Developer Tech, World Cup National Teams, and Shonen Anime Openings).
  */
 window.VibeGenAI = (() => {
   const TARGET_SEED_COUNT = 32;
@@ -181,6 +182,58 @@ window.VibeGenAI = (() => {
 
   // Expanded 32-Seed Domain-Pure Knowledge Graphs (FD-P0-20261116-01 — Zero Cross-Domain Mixing & Zero Generic Suffixes)
   const DOMAIN_BANKS = [
+    {
+      id: 'kpop-global-artists',
+      keywords: ['k-pop', 'kpop', 'idol', 'girl group', 'boy group', 'blackpink', 'bts', 'newjeans', 'twice', 'aespa', 'pop star', 'artist', 'artists'],
+      emojis: ['🎤', '💖', '✨', '🎧', '🌟', '🔥', '💿', '👑'],
+      items: [
+        'BTS', 'BLACKPINK', 'NewJeans', 'TWICE', 'aespa', 'Stray Kids', 'SEVENTEEN', 'IVE',
+        'LE SSERAFIM', '(G)I-DLE', 'Red Velvet', 'EXO', 'NCT 127', 'TXT (Tomorrow X Together)', 'ENHYPEN', 'ITZY',
+        'IU', 'Taeyeon', 'Jungkook', 'Lisa', 'Jennie', 'Rosé', 'G-Dragon', 'BIGBANG',
+        'Girls Generation (SNSD)', 'SHINee', '2NE1', 'DAY6', 'BABYMONSTER', 'KISS OF LIFE', 'ATEEZ', 'RIIZE'
+      ]
+    },
+    {
+      id: 'tech-ai-models',
+      keywords: ['ai', 'llm', 'tech', 'software', 'programming', 'language', 'developer', 'framework', 'coding', 'startup', 'hardware'],
+      emojis: ['🧠', '💻', '⚡', '🚀', '🤖', '🔧', '🌐', '🛡️'],
+      items: [
+        'Gemini 2.5 Pro', 'Claude 3.5 Sonnet', 'GPT-4o', 'DeepSeek-R1', 'Llama 3.3 70B', 'Qwen 2.5 Max', 'Mistral Large 2', 'Grok 3',
+        'Python', 'TypeScript', 'Rust', 'Go (Golang)', 'C++', 'JavaScript (ES2025)', 'SQL', 'Swift',
+        'Linux Kernel', 'Git', 'Docker', 'Kubernetes', 'PostgreSQL', 'SQLite', 'Redis', 'Cloudflare Workers',
+        'VS Code', 'Neovim', 'GitHub Actions', 'PyTorch', 'TensorFlow', 'WebAssembly (Wasm)', 'React', 'Svelte'
+      ]
+    },
+    {
+      id: 'world-cup-national-teams',
+      keywords: ['world cup', 'national team', 'national teams', 'fifa', 'euro', 'copa america', 'country football'],
+      emojis: ['🌍', '🏆', '⚽', '🔥', '🦁', '🦅', '⭐', '🛡️'],
+      items: [
+        'Argentina National Football Team', 'France National Football Team', 'Spain National Football Team', 'England National Football Team',
+        'Brazil National Football Team', 'Germany National Football Team', 'Portugal National Football Team', 'Netherlands National Football Team',
+        'Italy National Football Team', 'Croatia National Football Team', 'Belgium National Football Team', 'Uruguay National Football Team',
+        'Colombia National Football Team', 'Japan National Football Team', 'Morocco National Football Team', 'Senegal National Football Team',
+        'South Korea National Football Team', 'Switzerland National Football Team', 'Denmark National Football Team', 'Austria National Football Team',
+        'Mexico National Football Team', 'United States Men National Soccer Team', 'Nigeria National Football Team', 'Ivory Coast National Football Team',
+        'Serbia National Football Team', 'Poland National Football Team', 'Sweden National Football Team', 'Scotland National Football Team',
+        'Turkey National Football Team', 'Ukraine National Football Team', 'Ecuador National Football Team', 'Chile National Football Team'
+      ]
+    },
+    {
+      id: 'anime-shonen-franchises',
+      keywords: ['anime series', 'manga series', 'jump', 'shonen jump', 'isekai', 'seinen', 'anime franchise'],
+      emojis: ['⚔️', '🐉', '🔥', '✨', '📖', '⚡', '🌸', '👑'],
+      items: [
+        'Dragon Ball', 'Frieren: Beyond Journey End', 'Mobile Suit Gundam: The Origin', 'Slam Dunk',
+        'Sakamoto Days', 'Solo Leveling', 'Omniscient Reader Viewpoint', 'Doraemon',
+        'One Piece', 'Hunter x Hunter', 'Fullmetal Alchemist: Brotherhood', 'Attack on Titan',
+        'Jujutsu Kaisen', 'Chainsaw Man', 'Demon Slayer: Kimetsu no Yaiba', 'Death Note',
+        'YuYu Hakusho', 'Cowboy Bebop', 'Neon Genesis Evangelion', 'Steins;Gate',
+        'Berserk', 'Vinland Saga', 'Monster (Naoki Urasawa)', '20th Century Boys',
+        'Mob Psycho 100', 'One-Punch Man', 'Spy x Family', 'Dandadan',
+        'Kagurabachi', 'Haikyu!!', 'Code Geass', 'Gurren Lagann'
+      ]
+    },
     {
       id: 'ucl-football-clubs',
       keywords: [

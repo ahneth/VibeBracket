@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/version.js
  * Description: Central version, build timestamp, and storage key configuration for VibeBracket Arena.
@@ -13,12 +13,13 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added 3-Provider CORS Image Fetcher + Openverse CC API & 1-Tap Seed Photo Cycler (POD2-401), 4 Co-Star Hero Fusion Presets & Live Sliders (POD2-402), 1080p/4K 32-Seed Tier-List Share Poster with Robbery Fixed badges (POD2-403), and Beat-My-Bracket #challenge= Taste Compatibility Codec & Scorecard (POD2-404).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented Founder 10:43 HKT P0 Directives: Contextual <Seed Name> <Arena Topic> Live Photo Fetching (POD2-501 / FD-P0-20261115-01), Zero Generic Suffixes & Historical localStorage Cache Purger (POD2-502 / FD-P0-20261115-02), Overlapping Battle Arena UI with Diagonal Cross-Section VS Divider (POD2-503 / FD-P0-20261115-03), and Exact 2-6-8-8-8 Tier Assignment + 8 Round-of-32 Loser-Bracket Placement Battles (POD2-504 / FD-P0-20261115-04).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Shipped VibeBracket Arena v2.6.0 (Build 20261116_1009) implementing FD-P0-20261116-01..04 and POD2-601..605.
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Shipped VibeBracket Arena v2.7.0 (Build 20261116_2236) implementing POD2-701..705 (closing BUG-P1-20261116-01 & BUG-P1-20261116-02, adding Wikidata P154/P18 crest/image resolver, 12-domain curated banks, and Bento Command UI Phase 2).
  */
 window.VibeVersion = Object.freeze({
   APP_NAME: 'VibeBracket_Arena',
-  VERSION: '2.6.0',
-  BUILD_ID: '20261116_1009',
-  LAST_MODIFIED: '2026-11-16 10:09 HKT',
+  VERSION: '2.7.0',
+  BUILD_ID: '20261116_2236',
+  LAST_MODIFIED: '2026-11-16 22:36 HKT',
   COMPANY: 'NetHustle Software Labs Ltd.',
   MOTTO: 'Make money, Legally, NEVER HARM ANY HUMAN',
   STORAGE_KEY: 'vibebracket_arena_v2_state'

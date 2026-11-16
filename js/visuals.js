@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/visuals.js
  * Description: Contextual <Seed Name> <Arena Topic> 3-Provider Real-Time Seed Image Resolver (Google Image Custom Search + Wikipedia PageImages/Wikimedia Commons + Openverse CC0/CC-BY REST API), 1-Tap Seed Photo Cycler, CORS-safe Canvas DataURL converter, procedural SVG fallback banner generator, and HTML5 Canvas particle/confetti & diagonal VS clash shockwave engine.
@@ -11,6 +11,7 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Implemented POD2-401 3-Provider CORS Image Fetcher cascading across Google Custom Search, Wikipedia/Wikimedia Commons, and Openverse CC REST API, caching up to 3 candidate URLs per seed and adding cycleSeedPhoto().
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-501 (FD-P0-20261115-01) buildContextualImageQueries(item, topicTitle) ("<Seed Name> <Cleaned Arena Topic>" -> "<Seed Name> <Item Tag>" -> "<Seed Name>") across all 3 providers with topic-scoped cache keys, and upgraded triggerClashSparks() with diagonal cross-section VS lightning shockwaves (POD2-503).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-02 & POD2-601: 5-stage live image cascade (Exact Title Redirects, Contextual Search, Lead Image File Info, Wikimedia Commons gsrlimit=10, Openverse CC), scoreImageCandidate relevance & SVG/flag filter, and >=120px dimension guard.
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-703: added fetchWikidataOfficialVisual() resolving Wikidata P154 (official logo/crest) and P18 (main image) via Commons Special:FilePath?width=500 at Stage 0 of fetchRealtimeSeedImage().
  */
 window.VibeVisuals = (() => {
   const PALETTES = [
@@ -273,6 +274,55 @@ window.VibeVisuals = (() => {
    *   5. Openverse CC0 / CC-BY API (page_size=6)
    * All candidates are scored via scoreImageCandidate() and verified >= 120x120px.
    */
+  /**
+   * POD2-703: Queries keyless, CORS-enabled Wikidata API (origin=*) for an entity's
+   * official logo/crest (P154) and main image (P18), converting the filename to a
+   * 500px Wikimedia Commons Special:FilePath HTTPS URL.
+   */
+  async function fetchWikidataOfficialVisual(cleanEntityName) {
+    if (!cleanEntityName || typeof fetch === 'undefined') return [];
+    const found = [];
+    try {
+      const searchUrl = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search='
+        + encodeURIComponent(cleanEntityName)
+        + '&language=en&limit=2&format=json&origin=*';
+      const sRes = await fetch(searchUrl);
+      if (!sRes || !sRes.ok) return found;
+      const sData = await sRes.json();
+      const hits = Array.isArray(sData?.search) ? sData.search : [];
+      for (const hit of hits) {
+        if (!hit || !hit.id) continue;
+        const claimsUrl = 'https://www.wikidata.org/w/api.php?action=wbgetclaims&entity='
+          + encodeURIComponent(hit.id)
+          + '&format=json&origin=*';
+        const cRes = await fetch(claimsUrl);
+        if (!cRes || !cRes.ok) continue;
+        const cData = await cRes.json();
+        const claims = cData?.claims || {};
+        // P154 = official logo/crest image; P18 = main portrait/image
+        for (const prop of ['P154', 'P18']) {
+          const propArr = Array.isArray(claims[prop]) ? claims[prop] : [];
+          for (const stmt of propArr) {
+            const fileVal = stmt?.mainsnak?.datavalue?.value;
+            if (typeof fileVal === 'string' && fileVal.trim()) {
+              const fileUrl = 'https://commons.wikimedia.org/wiki/Special:FilePath/'
+                + encodeURIComponent(fileVal.trim().replace(/ /g, '_'))
+                + '?width=500';
+              found.push({
+                url: fileUrl,
+                title: fileVal.trim(),
+                source: prop === 'P154' ? 'Wikidata Official Crest (P154)' : 'Wikidata Main Image (P18)',
+                bonus: prop === 'P154' ? 45 : 35
+              });
+            }
+          }
+        }
+        if (found.length > 0) break;
+      }
+    } catch (_) {}
+    return found;
+  }
+
   async function fetchRealtimeSeedImage(item, topicTitle, options = {}) {
     if (!item || !item.name) return null;
 
@@ -336,6 +386,14 @@ window.VibeVisuals = (() => {
             });
           }
         } catch (_) {}
+      }
+
+      // Stage 0B (POD2-703): Wikidata Official Crest (P154) & Main Image (P18) Lookup
+      if (cleanEntityName) {
+        const wdVisuals = await fetchWikidataOfficialVisual(cleanEntityName);
+        wdVisuals.forEach((wv) => {
+          addScoredCandidate(wv.url, wv.title, wv.source, wv.bonus);
+        });
       }
 
       // Stage 1: Exact Wikipedia Page Title Lookup with redirects=1 (Highest Accuracy for Clubs, Games, Movies, People)
@@ -635,6 +693,7 @@ window.VibeVisuals = (() => {
     isSafeImageUrl,
     scoreImageCandidate,
     verifyImageMinDimensions,
+    fetchWikidataOfficialVisual,
     buildContextualImageQueries,
     getProceduralSvgBannerUrl,
     getContenderBannerUrl,

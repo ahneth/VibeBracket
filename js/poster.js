@@ -1,4 +1,4 @@
-// Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT
+// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -13,6 +13,7 @@
  *   - v2.4.0 (2026-11-15 10:36 HKT): Added 4 Co-Star Hero Composition Presets (rivals, versus, podium, hologram) with live scale/offset/rim-glow slider transforms (POD2-402) and renderTierPoster() for 1080p/4K 32-Seed Tier-List PNG exports with glowing "🔥 Robbery Fixed (+N)" badges (POD2-403).
  *   - v2.5.0 (2026-11-15 22:14 HKT): Updated renderTierPoster() header & tier badges to display exact 2-6-8-8-8 Tier System counts and C/D Placement Battle status (POD2-504).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented POD2-604: added exportDualSlidePack (Co-Star Hero Fusion + 2-6-8-8-8 Tier Verdict) and exportDiagonalClashVideo (3s 30fps .webm animated clash clip).
+ *   - v2.7.0 (2026-11-16 22:36 HKT): Closed BUG-P1-20261116-01 (POD2-701): added and exported exportDualSlidePack() and exportDiagonalClashVideo() on window.VibePoster.
  */
 window.VibePoster = (() => {
   const THEMES = {
@@ -563,12 +564,86 @@ window.VibePoster = (() => {
     ctx.restore();
   }
 
+  /**
+   * POD2-604 & POD2-701 (BUG-P1-20261116-01 Fix): Exports a 2-Slide Social Carousel Pack:
+   *   - Slide 1: Co-Star Hero Scene Fusion Poster PNG
+   *   - Slide 2: 32-Seed 2-6-8-8-8 Tier-List Verdict Poster PNG
+   */
+  function exportDualSlidePack(canvas, topic, bracket, tierMap = {}, autoTierMap = {}, opts = {}) {
+    if (!canvas || !topic) return null;
+    render(canvas, topic, bracket, tierMap || {}, opts);
+    const heroDataUrl = canvas.toDataURL('image/png');
+    if (typeof document !== 'undefined') {
+      const a1 = document.createElement('a');
+      a1.href = heroDataUrl;
+      a1.download = (topic.id || 'vibebracket') + '_slide1_hero.png';
+      a1.click();
+    }
+
+    const offscreen = (typeof document !== 'undefined' && document.createElement)
+      ? document.createElement('canvas')
+      : canvas;
+    renderTierPoster(offscreen, topic, bracket, tierMap || {}, autoTierMap || {}, {
+      theme: opts.theme || 'cyber',
+      resolution: opts.resolution || '1x'
+    });
+    const tierDataUrl = offscreen.toDataURL('image/png');
+    if (typeof document !== 'undefined') {
+      const a2 = document.createElement('a');
+      a2.href = tierDataUrl;
+      a2.download = (topic.id || 'vibebracket') + '_slide2_tiers_26888.png';
+      a2.click();
+    }
+    return { heroDataUrl, tierDataUrl };
+  }
+
+  /**
+   * POD2-604 & POD2-701 (BUG-P1-20261116-01 Fix): Renders and exports a 3-second 30fps
+   * Diagonal VS Clash Clip (.webm) using HTMLCanvasElement.captureStream + MediaRecorder,
+   * with automatic PNG snapshot fallback ($0.00 server burn).
+   */
+  async function exportDiagonalClashVideo(canvas, topic, bracket, opts = {}) {
+    if (!canvas || !topic) return { format: 'png' };
+    render(canvas, topic, bracket, {}, opts);
+    if (typeof canvas.captureStream === 'function' && typeof MediaRecorder !== 'undefined') {
+      try {
+        const stream = canvas.captureStream(30);
+        const chunks = [];
+        const rec = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+        const done = new Promise((resolve) => { rec.onstop = resolve; });
+        rec.start();
+        setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 3000);
+        await done;
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        if (typeof document !== 'undefined') {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = (topic.id || 'vibebracket') + '_clash_3s.webm';
+          a.click();
+        }
+        return { format: 'webm', url };
+      } catch (_) {}
+    }
+    const pngUrl = canvas.toDataURL('image/png');
+    if (typeof document !== 'undefined') {
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = (topic.id || 'vibebracket') + '_clash_snapshot.png';
+      a.click();
+    }
+    return { format: 'png', url: pngUrl };
+  }
+
   return {
     ASPECTS,
     PRESETS,
     drawHeroSceneFusion,
     runGenAiHeroFusion,
     render,
-    renderTierPoster
+    renderTierPoster,
+    exportDualSlidePack,
+    exportDiagonalClashVideo
   };
 })();
