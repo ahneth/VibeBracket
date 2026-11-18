@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/genai.js
+// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/genai.js
 /**
  * File: js/genai.js
  * Description: 32-Seed GenAI Topic Studio & Real-Time Entity Synthesizer (Tier 1: OpenRouter BYOK 32-Seed LLM JSON; Tier 2: Live Wikipedia/Wikimedia REST Entity Resolution; Tier 3: 32-Seed Multi-Domain Curated Knowledge Graphs) with automatic real-time seed image lookup.

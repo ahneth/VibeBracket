@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/clash.js
+// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/clash.js
 /**
  * File: js/clash.js
  * Description: Client-side contender photo crop/compression (<150KB) and animated Versus Clash transition controller.

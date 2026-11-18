@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/state.js
+// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/state.js
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.

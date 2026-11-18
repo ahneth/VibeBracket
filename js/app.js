@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/app.js
+// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/app.js
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.

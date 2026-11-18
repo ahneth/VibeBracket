@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/poster.js
+// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/poster.js
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).

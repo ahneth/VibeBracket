@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/packSanitizer.js
+// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/packSanitizer.js
 /**
  * File: js/packSanitizer.js
  * Description: UTF-8 safe URL-hash codec (#b=/#bracket= and #challenge=), 31-bit taste compatibility comparator, power-of-two tournament schema validator, and CSV/JSON pack import/export engine.
