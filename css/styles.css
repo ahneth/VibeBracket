@@ -1,20 +1,13 @@
-/* Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: css/styles.css */
-*/
-    - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-704 (UI Modernization Phase 2): Bento Command Header (.bento-command-bar), animated #photoProgressPill, and contender metadata framing.
-*/
+/* Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: css/styles.css */
 /*
   File: css/styles.css
   Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
   Change Log:
     - v1.0.0 (2026-11-13 07:26 HKT): Initial inline styles.
-    - v1.1.0 (2026-11-13 07:46 HKT): Extracted to css/styles.css; added Bracket Tree grid and 2-column GenAI/Poster studio layouts.
-    - v1.2.0 (2026-11-13 08:15 HKT): Added full-bleed SVG/photo contender artwork banners, particle FX overlay canvas, and enhanced visual polish.
     - v2.0.0 (2026-11-13 17:55 HKT): Added Versus Clash keyframes, Spice Meter, Pan/Zoom Bracket Tree, and Mini-Map styles.
-    - v2.1.0 (2026-11-13 19:29 HKT): Added non-nested contender-card-wrap, drag-and-drop highlight state, and spice vote split bar.
-    - v2.2.0 (2026-11-14 10:17 HKT): Added Streamer HUD shortcut bar (.streamer-hud-bar), keycap badges (.kbd-badge), and JSON/CSV pack portability toolbar.
-    - v2.3.0 (2026-11-14 22:35 HKT): Added drag-and-drop tier chip styles, seed image status bar, and biometric consent box.
-    - v2.4.0 (2026-11-15 10:36 HKT): Added glowing .robbery-badge, .challenge-scorecard compatibility meter, and .poster-slider-grid styles (POD2-401..404).
-    - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-503 (FD-P0-20261115-03) Overlapping Head-to-Head Battle Arena (.matchup-grid, .vs-diagonal-divider, angled contender clip-paths) and POD2-504 Loser-Bracket Placement Battle stage styles.
+    - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-704 (UI Modernization Phase 2): Bento Command Header (.bento-command-bar), animated #photoProgressPill, and contender metadata framing.
+    - v2.8.0 (2026-11-17 10:47 HKT): Implemented FD-P0-20261117-03 (POD2-803 & POD2-804): added collapsible .studio-drawer, interactive 32-Seed Draft Board grid (.draft-board-grid), .upset-alert-banner, and Spotify-Wrapped .taste-archetype-card styles.
+    - v2.9.0 (2026-11-18 08:09 HKT): Added .tale-of-the-tape-bar, .round-transition-banner, .draft-board-photo-status, and fixed top-of-file comment closure before :root so all CSS custom properties (--text-primary: #f8fafc, --text-secondary: #cbd5e1) apply cleanly.
 */
 :root {
   --bg-canvas: #090d16;
