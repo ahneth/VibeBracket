@@ -1,4 +1,5 @@
-<!-- Version: 2.6.0 | Last Modified: 2026-11-16 10:09 HKT     - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-01..04 & POD2-601..605: modernized UI header & typography, added 1-tap Pin Image URL buttons (#btnLeftPinUrl / #btnRightPinUrl), Vibe Streak HUD (#vibeStreakBadge), Battle of Losers stage banner (#redemptionStageBanner), 39-Match Tier Provenance Inspector + Re-Fight (#tierProvenanceBar / #btnRefightPlacementMatch), and Dual-Slide Pack / 3s Clash Video export buttons.
+<!-- Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | File: index.html -->
+-->
     - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-701..705: upgraded header to Bento Command Bar, added #photoProgressPill and 1-tap #btnRetryMissingPhotos in #seedImgStatusBar, and bumped brand version to v2.7.0.
 -->
 <!--
@@ -35,7 +36,7 @@
         <div class="brand-mark">VB</div>
         <div>
           <span class="brand-title">VibeBracket Arena</span>
-          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.7.0</span>
+          <span class="brand-sub" id="brandVersionLabel">by NetHustle · v2.9.0</span>
         </div>
       </div>
 
@@ -48,9 +49,15 @@
       </nav>
 
       <div class="topbar-actions">
-        <button type="button" class="btn btn-sm" id="btnToggleStreamer" title="Toggle Live Streamer HUD &amp; Hotkeys">Streamer: OFF</button>
+        <button type="button" class="btn btn-sm" id="btnToggleDraftBoard" title="Preview &amp; customize all 32 seeds before or during battle">📋 32-Seed Draft Board</button>
         <button type="button" class="btn btn-sm" id="btnToggleSfx" title="Toggle sound effects">SFX: ON</button>
-        <button type="button" class="btn btn-sm" id="btnOpenLogs">Logs</button>
+        <details class="studio-drawer" id="studioToolsDrawer">
+          <summary title="Studio, Streamer &amp; Diagnostic Tools">⚙️ Studio</summary>
+          <div class="studio-drawer-menu">
+            <button type="button" class="btn btn-sm" id="btnToggleStreamer" title="Toggle Live Streamer HUD &amp; Hotkeys">Streamer: OFF</button>
+            <button type="button" class="btn btn-sm" id="btnOpenLogs">Logs</button>
+          </div>
+        </details>
         <button type="button" class="btn btn-primary btn-sm" id="btnOpenPro">Pro</button>
       </div>
     </div>
@@ -63,7 +70,7 @@
         <div class="topic-pills" id="topicPills"></div>
         <div class="action-row">
           <button type="button" class="btn btn-sm btn-primary" id="btnCopyChallengeLink" title="Copy a Beat-My-Bracket #challenge= link with your picks">⚔️ Beat My Bracket Link</button>
-          <button type="button" class="btn btn-sm" id="btnSimulateChallenge" title="Preview Friend-vs-Friend Taste Compatibility Scorecard">🤝 Compare Rival Picks</button>
+          <button type="button" class="btn btn-sm" id="btnSimulateChallenge" title="Preview Friend-vs-Friend Taste Compatibility Scorecard">🤝 Compare Rival Picks</button><button type="button" class="btn btn-sm btn-primary" id="btnExportDuelPoster" title="Export 1080x1350 Split-Screen Friend-Duel Verdict Poster">🖼️ Duel Verdict Poster</button>
           <button type="button" class="btn btn-sm" id="btnUndoVote" disabled>Undo</button>
           <button type="button" class="btn btn-sm" id="btnResetBracket">Restart</button>
         </div>
@@ -111,12 +118,27 @@
         <div class="redemption-stage-banner" id="redemptionStageBanner" role="status" aria-live="polite">
           <span id="redemptionBannerText">⚔️ 39-Match Tournament Structure: 31 Main Knockout Matches + 8 Battle of Losers Redemption Matches → Exact S(2) · A(6) · B(8) · C(8) · D(8) Tiers</span>
         </div>
+        <div class="upset-alert-banner" id="upsetAlertBanner" role="status" aria-live="polite">
+          <span id="upsetAlertText">🚨 UPSET ALERT! Lower seed knocked out a top contender!</span>
+        </div>
+        <div class="draft-board-wrap" id="draftBoardWrap" style="display:none;" role="region" aria-label="32-Seed Interactive Draft Board">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+            <div>
+              <strong style="font-size:0.9rem;color:#f8fafc;">📋 32-Seed Interactive Draft Board (Pre-Battle Roster Preview)</strong>
+              <p class="section-sub">Inspect all 32 contenders and their live photos at a glance — click ✏️ Edit Seed to swap any contender or 📌 Pin URL to customize its portrait.</p>
+            </div>
+            <span class="draft-board-status-pill" id="draftBoardPhotoStatus">32 / 32 Verified Visuals Ready</span><button type="button" class="btn btn-sm" id="btnPrefetchDraftBoard" title="Prefetch verified Wikipedia/Wikidata visuals for all 32 Draft Board seeds (concurrency = 4)">⚡ Prefetch 32 Photos</button><button type="button" class="btn btn-sm" id="btnCloseDraftBoard">Hide Draft Board</button>
+          </div>
+          <div class="draft-board-grid" id="draftBoardGrid"></div>
+        </div>
         <div id="matchupStage">
+          <div class="round-transition-banner" id="roundTransitionBanner" role="status" aria-live="polite"></div>
+          <div class="tale-of-the-tape-bar" id="taleOfTheTapeBar" aria-label="Matchup Tale of the Tape"><span class="tape-hype-badge" id="tapeHypeBadge">⚖️ Coin-Flip Clash</span><span id="tapeDomainLabel">Verified 32-Seed Showdown</span><span class="tape-split-meter" id="tapeWinSplitLabel">Community Split: 50% vs 50%</span></div>
           <div class="matchup-grid">
             <div class="contender-card-wrap" id="leftCardWrap">
               <button type="button" class="contender-btn" id="btnPickLeft">
                 <div id="leftArt" style="width:100%;"><img class="contender-banner-img" id="leftBannerImg" alt="Left contender visual banner" /><span id="leftEmoji" style="display:none;"></span></div>
-                <span class="contender-name" id="leftName"></span>
+                <span class="seed-rank-pill" id="leftSeedPill"></span><span class="contender-name" id="leftName"></span>
                 <span class="contender-tag" id="leftTag"></span>
                 <span class="contender-cta">Tap to Advance →</span>
               </button>
@@ -138,7 +160,7 @@
             <div class="contender-card-wrap" id="rightCardWrap">
               <button type="button" class="contender-btn" id="btnPickRight">
                 <div id="rightArt" style="width:100%;"><img class="contender-banner-img" id="rightBannerImg" alt="Right contender visual banner" /><span id="rightEmoji" style="display:none;"></span></div>
-                <span class="contender-name" id="rightName"></span>
+                <span class="seed-rank-pill" id="rightSeedPill"></span><span class="contender-name" id="rightName"></span>
                 <span class="contender-tag" id="rightTag"></span>
                 <span class="contender-cta">← Tap to Advance</span>
               </button>
@@ -180,6 +202,13 @@
               <button type="button" class="btn btn-primary" id="btnGoTiersFromChampion">Review Auto-Ranked Tier List</button>
               <button type="button" class="btn" id="btnCopySummary">Copy Results</button>
             </div>
+          </div>
+
+          <div class="taste-archetype-card" id="tasteArchetypeCard" role="region" aria-label="Your Arena Taste Archetype Verdict">
+            <span class="taste-archetype-badge">✨ Your Arena Taste Archetype</span>
+            <h3 class="section-heading" id="tasteArchetypeTitle" style="margin-bottom:0.25rem;">👑 Chalk Purist Taktician</h3>
+            <p class="section-sub" id="tasteArchetypeDesc" style="margin-bottom:0.5rem;">You respect championship pedigree and dominant #1 seeds.</p>
+            <div style="font-size:0.78rem;color:#bae6fd;font-weight:700;" id="tasteArchetypeStats">Upsets Picked: 0% · Signature Call: Pending</div>
           </div>
 
           <div class="placement-battle-card" id="loserPlacementStage">
