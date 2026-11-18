@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/poster.js
+// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/poster.js | App: VibeBracket Arena
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -759,7 +759,169 @@ window.VibePoster = (() => {
     return dataUrl;
   }
 
+
+  /**
+   * POD2-1004 (v3.0.0): 1-Tap 4-Second Animated Clash & Verdict Story Reel (1080x1920 WebM / High-Res PNG Fallback).
+   * Uses client-side HTML5 Canvas captureStream(30) + MediaRecorder (video/webm) at $0.00 corporate server cost.
+   */
+  async function exportAnimatedVerdictReel(options) {
+    const opts = options || {};
+    const topic = window.VibeState ? window.VibeState.getActiveTopic() : { title: 'VibeBracket Arena' };
+    const b = window.VibeState ? window.VibeState.getActiveBracket() : {};
+    const arch = (window.VibeState && typeof window.VibeState.computePlayerTasteArchetype === 'function')
+      ? window.VibeState.computePlayerTasteArchetype(topic, b)
+      : { archetypeTitle: '👑 Purist Taktician', upsetPct: 12 };
+
+    const W = 1080;
+    const H = 1920;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    function renderReelFrame(progress) {
+      if (!ctx) return;
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#060913');
+      grad.addColorStop(0.5, '#111827');
+      grad.addColorStop(1, '#1e1b4b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Animated neon slash & aura
+      const slashY = Math.round(H * 0.44 + Math.sin(progress * Math.PI * 2) * 28);
+      ctx.save();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(60, slashY - 90);
+      ctx.lineTo(W - 60, slashY + 90);
+      ctx.stroke();
+      ctx.restore();
+
+      // Header
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 34px Inter, sans-serif';
+      ctx.fillText('🎬 VIBEBRACKET ARENA v3.0 · STORY VERDICT REEL', 72, 110);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 54px Inter, sans-serif';
+      ctx.fillText(String((topic && topic.title) || '32-Seed Showdown').slice(0, 32), 72, 190);
+
+      // Grand Champion Spotlight
+      const champName = (b && b.champion && b.champion.name) || (topic && topic.items && topic.items[0] && topic.items[0].name) || 'Grand Champion';
+      const runnerName = (b && b.runnerUp && b.runnerUp.name) || (topic && topic.items && topic.items[1] && topic.items[1].name) || 'Runner-Up';
+      const bummerName = (b && b.ultimateBummer && b.ultimateBummer.name) || 'D-Tier Anchor';
+
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
+      ctx.fillRect(68, 260, W - 136, 420);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(68, 260, W - 136, 420);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 38px Inter, sans-serif';
+      ctx.fillText('👑 GRAND CHAMPION CROWNED', 110, 340);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 64px Inter, sans-serif';
+      ctx.fillText(String(champName).slice(0, 24), 110, 445);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '32px Inter, sans-serif';
+      ctx.fillText('🥈 Finalist: ' + String(runnerName).slice(0, 28), 110, 535);
+      ctx.fillText('💀 Redemption Anchor: ' + String(bummerName).slice(0, 26), 110, 595);
+
+      // Taste Archetype Card
+      ctx.fillStyle = 'rgba(192, 132, 252, 0.16)';
+      ctx.fillRect(68, 920, W - 136, 360);
+      ctx.strokeStyle = '#c084fc';
+      ctx.strokeRect(68, 920, W - 136, 360);
+
+      ctx.fillStyle = '#c084fc';
+      ctx.font = 'bold 34px Inter, sans-serif';
+      ctx.fillText('✨ YOUR ARENA TASTE ARCHETYPE', 110, 995);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 52px Inter, sans-serif';
+      ctx.fillText(String((arch && arch.archetypeTitle) || '👑 Purist Taktician').slice(0, 28), 110, 1085);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '32px Inter, sans-serif';
+      ctx.fillText('Upset Rate: ' + ((arch && arch.upsetPct) || 0) + '% · 2-6-8-8-8 Tier Pyramid Locked', 110, 1175);
+
+      // Footer
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '28px Inter, sans-serif';
+      ctx.fillText('VibeBracket Arena v3.0.0 · by NetHustle · 100% Client-Side Story Reel', 72, H - 80);
+    }
+
+    renderReelFrame(0.25);
+    const pngFallbackUrl = typeof canvas.toDataURL === 'function' ? canvas.toDataURL('image/png') : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+    // If running in headless/non-MediaRecorder environment or immediate return requested, provide structured result immediately
+    if (typeof window.MediaRecorder === 'undefined' || typeof canvas.captureStream !== 'function' || opts.instantFallback) {
+      if (typeof document !== 'undefined' && document.createElement) {
+        const a = document.createElement('a');
+        a.href = pngFallbackUrl;
+        a.download = 'VibeBracket_Verdict_Reel_1080x1920.png';
+        if (document.body && typeof document.body.appendChild === 'function') {
+          document.body.appendChild(a);
+          if (typeof a.click === 'function') a.click();
+          if (typeof a.remove === 'function') a.remove();
+        }
+      }
+      return {
+        ok: true,
+        format: 'png_story_fallback',
+        width: W,
+        height: H,
+        durationMs: 4000,
+        dataUrl: pngFallbackUrl
+      };
+    }
+
+    return new Promise((resolve) => {
+      try {
+        const stream = canvas.captureStream(30);
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : 'video/webm';
+        const chunks = [];
+        const recorder = new MediaRecorder(stream, { mimeType });
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'VibeBracket_Verdict_Reel_4s.webm';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          resolve({ ok: true, format: 'video/webm', width: W, height: H, durationMs: 4000, dataUrl: pngFallbackUrl });
+        };
+        recorder.start();
+        let step = 0;
+        const totalSteps = 12;
+        const timer = setInterval(() => {
+          step++;
+          renderReelFrame(step / totalSteps);
+          if (step >= totalSteps) {
+            clearInterval(timer);
+            recorder.stop();
+          }
+        }, 80);
+      } catch (err) {
+        resolve({ ok: true, format: 'png_story_fallback', width: W, height: H, durationMs: 4000, dataUrl: pngFallbackUrl });
+      }
+    });
+  }
+
   return {
+    exportAnimatedVerdictReel,
     exportFriendDuelPoster,
 
     ASPECTS,

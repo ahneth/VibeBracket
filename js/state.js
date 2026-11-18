@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/state.js
+// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/state.js | App: VibeBracket Arena
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -698,6 +698,57 @@ window.VibeState = (() => {
 
   
   // POD2-902: 1-Tap Draft Board Seed Reroll drawing from Domain-Verified Reserve Pool
+
+  // =========================================================================
+  // POD2-1004: Hall of Champions Local Trophy Cabinet (v3.0.0)
+  // =========================================================================
+  function getTrophyCabinet() {
+    try {
+      const key = (window.VibeVersion && window.VibeVersion.TROPHY_CABINET_KEY) || 'vibebracket_arena_v3_trophies';
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function recordChampionToCabinet(customEntry) {
+    try {
+      const topic = getActiveTopic();
+      const b = getActiveBracket();
+      if (!customEntry && (!topic || !b || !b.champion)) return getTrophyCabinet();
+      const arch = (!customEntry && typeof computePlayerTasteArchetype === 'function')
+        ? computePlayerTasteArchetype(topic, b)
+        : null;
+      const duel = (!customEntry && typeof computeFriendDuelComparison === 'function' && state.activeChallenge)
+        ? computeFriendDuelComparison(state.activeChallenge)
+        : null;
+      const entry = customEntry || {
+        id: 'trophy_' + (topic ? topic.id : 'custom') + '_' + Date.now(),
+        topicId: topic ? topic.id : 'custom',
+        topicTitle: String((topic && topic.title) || 'Arena Tournament').slice(0, 80),
+        championName: String((b && b.champion && b.champion.name) || 'Grand Champion').slice(0, 60),
+        championEmoji: (b && b.champion && b.champion.emoji) || '👑',
+        runnerUpName: String((b && b.runnerUp && b.runnerUp.name) || 'Runner-Up').slice(0, 60),
+        bummerName: String((b && b.ultimateBummer && b.ultimateBummer.name) || 'D-Tier Anchor').slice(0, 60),
+        archetypeTitle: (arch && arch.archetypeTitle) || '👑 Purist Taktician',
+        upsetPct: (arch && typeof arch.upsetPct === 'number') ? arch.upsetPct : 0,
+        duelSummary: duel ? (duel.badge + ' (' + duel.agreementPct + '% vs @' + duel.challengerHandle + ')') : 'Solo Crown',
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
+      };
+      const current = getTrophyCabinet().filter(t => !(t.topicId === entry.topicId && t.championName === entry.championName));
+      current.unshift(entry);
+      const trimmed = current.slice(0, 24);
+      const key = (window.VibeVersion && window.VibeVersion.TROPHY_CABINET_KEY) || 'vibebracket_arena_v3_trophies';
+      localStorage.setItem(key, JSON.stringify(trimmed));
+      return trimmed;
+    } catch (e) {
+      return getTrophyCabinet();
+    }
+  }
+
   function rerollDraftSeed(seedIndex) {
     const topic = getActiveTopic();
     if (!topic || !Array.isArray(topic.items)) return null;
@@ -725,16 +776,35 @@ window.VibeState = (() => {
     if (state.customPhotos && state.customPhotos[replacement.id]) {
       delete state.customPhotos[replacement.id];
     }
-    // Rebuild bracket if 0 votes cast so Round of 32 reflects the new seed immediately
+    // Rebuild bracket if 0 votes cast so Round of 32 reflects the new seed immediately (BUG-P1-20261118-01 Fixed)
     const b = getActiveBracket();
     if (b && (!b.history || b.history.length === 0)) {
-      state.brackets[topic.id] = createBracket(topic);
+      initBracket(topic);
     }
     save();
-    return replacement;
+    return Object.assign({}, replacement, {
+      ok: true,
+      index: idx,
+      previous: oldItem,
+      replacement
+    });
   }
 
   // POD2-904: Stateless #challenge= Friend-Duel Encoder, Parser & Agreement Calculator
+  // BUG-P1-20261118-02 / ACT-P2-20261118-02 Fix: Define getActiveTiers() helper for encodeChallengeLink & computeFriendDuelComparison
+  function getActiveTiers() {
+    const topic = getActiveTopic();
+    const b = getActiveBracket();
+    if (!topic) return { S: [], A: [], B: [], C: [], D: [] };
+    const tMap = (state.tiers && state.tiers[topic.id]) || (b ? autoPopulateTiers26888(topic, b) : {});
+    const grouped = { S: [], A: [], B: [], C: [], D: [] };
+    (topic.items || []).forEach((it) => {
+      const t = tMap[it.id];
+      if (t && grouped[t]) grouped[t].push(it);
+    });
+    return grouped;
+  }
+
   function encodeChallengeLink(challengerHandle) {
     const topic = getActiveTopic();
     const b = getActiveBracket();
@@ -863,7 +933,10 @@ window.VibeState = (() => {
   }
 
   return {
+    getTrophyCabinet,
+    recordChampionToCabinet,
     rerollDraftSeed,
+    getActiveTiers,
     encodeChallengeLink,
     parseChallengeLink,
     computeFriendDuelComparison,

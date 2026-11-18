@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/app.js
+// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/app.js | App: VibeBracket Arena
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -203,6 +203,9 @@
     document.getElementById('progressPct').textContent = pct + '%';
 
     if (b.champion) {
+      if (window.VibeState && typeof window.VibeState.recordChampionToCabinet === 'function') {
+        window.VibeState.recordChampionToCabinet();
+      }
       document.getElementById('roundBadge').textContent = 'Tournament Complete';
       document.getElementById('matchCounter').textContent = totalMatches + ' of ' + totalMatches + ' Matches';
       document.getElementById('matchupStage').style.display = 'none';
@@ -296,6 +299,16 @@
       if (tapeDomain) tapeDomain.textContent = (match.left.tag || topic.subtitle || topic.title || '32-Seed Showdown').slice(0, 48);
       const rawLeftPct = Math.max(22, Math.min(78, Math.round(50 + (rightSeedRank - leftSeedRank) * 1.15)));
       if (tapeSplit) tapeSplit.textContent = 'Community Split: ' + rawLeftPct + '% vs ' + (100 - rawLeftPct) + '%';
+      const tickerTextEl = document.getElementById('commentaryTickerText');
+      if (tickerTextEl) {
+        if (diff >= 12) {
+          tickerTextEl.textContent = '🎙️ Broadcast Desk: #' + Math.min(leftSeedRank, rightSeedRank) + ' heavy favorite faces dark-horse #' + Math.max(leftSeedRank, rightSeedRank) + ' — upset radar active!';
+        } else if (diff <= 3) {
+          tickerTextEl.textContent = '🎙️ Broadcast Desk: Razor-thin seeding gap (#' + leftSeedRank + ' vs #' + rightSeedRank + ') — community split is ' + rawLeftPct + '% / ' + (100 - rawLeftPct) + '%!';
+        } else {
+          tickerTextEl.textContent = '🎙️ Broadcast Desk: ' + match.left.name + ' (#' + leftSeedRank + ') clashes with ' + match.right.name + ' (#' + rightSeedRank + ') in ' + getRoundName(round.length) + '!';
+        }
+      }
     }
 
     document.getElementById('leftName').textContent = match.left.name;
@@ -665,6 +678,24 @@
     const loser = side === 'left' ? match.right : match.left;
 
     const prevRoundIdx = b.currentRoundIdx;
+    const curRoundArr = b.rounds[b.currentRoundIdx] || [];
+    const curMatchObj = curRoundArr[b.currentMatchIdx];
+    if (curMatchObj && curMatchObj.left && curMatchObj.right) {
+      const lR = Math.max(1, topic.items.findIndex((it) => it.id === curMatchObj.left.id) + 1);
+      const rR = Math.max(1, topic.items.findIndex((it) => it.id === curMatchObj.right.id) + 1);
+      const leftConsensusPct = Math.max(22, Math.min(78, Math.round(50 + (rR - lR) * 1.15)));
+      const pickedPct = side === 'left' ? leftConsensusPct : (100 - leftConsensusPct);
+      const pickedSeed = side === 'left' ? curMatchObj.left : curMatchObj.right;
+      const pulseEl = document.getElementById('crowdConsensusToast');
+      if (pulseEl) {
+        if (pickedPct >= 50) {
+          pulseEl.textContent = '👑 ' + pickedPct + '% Fan Consensus Choice — You backed ' + pickedSeed.name + '!';
+        } else {
+          pulseEl.textContent = '🔥 Bold Contrarian Pick — Only ' + pickedPct + '% backed underdog ' + pickedSeed.name + '!';
+        }
+        pulseEl.style.display = 'flex';
+      }
+    }
     window.VibeState.recordMatchVote(topic.id, b.currentRoundIdx, b.currentMatchIdx, side);
     b.history.push({ roundIdx: b.currentRoundIdx, matchIdx: b.currentMatchIdx, side });
     match.winner = winner;
@@ -1864,6 +1895,118 @@
         showToast('⚡ 32-Seed Draft Board Visuals Prefetched!');
       });
     }
+    function renderTrophyCabinetModal() {
+      const grid = document.getElementById('trophyCabinetGrid');
+      if (!grid || !window.VibeState || typeof window.VibeState.getTrophyCabinet !== 'function') return;
+      grid.textContent = '';
+      const list = window.VibeState.getTrophyCabinet();
+      if (!list.length) {
+        const empty = createSafeEl('div', 'Complete a 32-seed tournament to enshrine your first Grand Champion & Taste Archetype here!', 'trophy-cabinet-card');
+        grid.appendChild(empty);
+        return;
+      }
+      list.forEach((tr) => {
+        const card = createSafeEl('div', null, 'trophy-cabinet-card');
+        card.appendChild(createSafeEl('strong', (tr.championEmoji || '👑') + ' ' + tr.championName, null));
+        card.appendChild(createSafeEl('div', 'Arena: ' + tr.topicTitle, null));
+        card.appendChild(createSafeEl('div', tr.archetypeTitle + ' · Upset Rate: ' + tr.upsetPct + '%', null));
+        card.appendChild(createSafeEl('div', tr.duelSummary + ' · ' + tr.timestamp, null));
+        grid.appendChild(card);
+      });
+    }
+
+    // POD2-1103: 1-Tap 3-Skin Arena Theme Switcher (Obsidian Aurora -> Cyber Arcade -> Golden Championship)
+    const SKINS = [
+      { id: 'obsidian', label: '🎨 Skin: Obsidian' },
+      { id: 'cyber', label: '🎨 Skin: Cyber' },
+      { id: 'gold', label: '🎨 Skin: Gold' }
+    ];
+    let skinIdx = 0;
+    try {
+      const savedSkin = localStorage.getItem((window.VibeVersion && window.VibeVersion.SKIN_STORAGE_KEY) || 'vibebracket_arena_v3_skin');
+      const foundIdx = SKINS.findIndex(s => s.id === savedSkin);
+      if (foundIdx >= 0) skinIdx = foundIdx;
+    } catch (e) {}
+    const btnCycleThemeSkin = document.getElementById('btnCycleThemeSkin');
+    function applyArenaSkin(idx) {
+      const sk = SKINS[idx % SKINS.length];
+      document.documentElement.setAttribute('data-arena-skin', sk.id);
+      if (btnCycleThemeSkin) btnCycleThemeSkin.textContent = sk.label;
+      try {
+        localStorage.setItem((window.VibeVersion && window.VibeVersion.SKIN_STORAGE_KEY) || 'vibebracket_arena_v3_skin', sk.id);
+      } catch (e) {}
+    }
+    applyArenaSkin(skinIdx);
+    if (btnCycleThemeSkin) {
+      btnCycleThemeSkin.addEventListener('click', () => {
+        skinIdx = (skinIdx + 1) % SKINS.length;
+        applyArenaSkin(skinIdx);
+        showToast('🎨 Switched Arena Theme: ' + SKINS[skinIdx].label.replace('🎨 Skin: ', ''));
+      });
+    }
+
+    // POD2-1104: Transparent Creator Pro 4K Upgrade Preview Modal
+    const btnOpenCreatorPro = document.getElementById('btnOpenCreatorPro');
+    const creatorProModal = document.getElementById('creatorProModal');
+    const btnCloseCreatorPro = document.getElementById('btnCloseCreatorPro');
+    const btnCreatorProCheckoutPreview = document.getElementById('btnCreatorProCheckoutPreview');
+    if (btnOpenCreatorPro && creatorProModal) {
+      btnOpenCreatorPro.addEventListener('click', () => {
+        creatorProModal.style.display = creatorProModal.style.display === 'block' ? 'none' : 'block';
+      });
+    }
+    if (btnCloseCreatorPro && creatorProModal) {
+      btnCloseCreatorPro.addEventListener('click', () => {
+        creatorProModal.style.display = 'none';
+      });
+    }
+    if (btnCreatorProCheckoutPreview) {
+      btnCreatorProCheckoutPreview.addEventListener('click', () => {
+        showToast('👑 Creator Pro ($4.99 / $9.99 mo / $79 yr) — Stripe Checkout ready for Stage G5 launch!');
+      });
+    }
+
+    // POD2-1102: 1-Click "✨ Suggest Viral Topics" Studio Chips
+    document.querySelectorAll('.viral-topic-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const promptVal = chip.getAttribute('data-viral-prompt');
+        if (!promptVal || !window.VibeGenAI || !window.VibeState) return;
+        const topic = window.VibeGenAI.synthesizeLocalTopic(promptVal);
+        if (topic && Array.isArray(topic.items) && topic.items.length === 32) {
+          window.VibeState.addTopic(topic);
+          renderArena();
+          renderDraftBoard();
+          showToast('✨ Loaded 32-Seed Viral Arena: ' + topic.title);
+        }
+      });
+    });
+
+    const btnOpenTrophyCabinet = document.getElementById('btnOpenTrophyCabinet');
+    const trophyCabinetModal = document.getElementById('trophyCabinetModal');
+    const btnCloseTrophyCabinet = document.getElementById('btnCloseTrophyCabinet');
+    if (btnOpenTrophyCabinet && trophyCabinetModal) {
+      btnOpenTrophyCabinet.addEventListener('click', () => {
+        renderTrophyCabinetModal();
+        trophyCabinetModal.style.display = trophyCabinetModal.style.display === 'block' ? 'none' : 'block';
+      });
+    }
+    if (btnCloseTrophyCabinet && trophyCabinetModal) {
+      btnCloseTrophyCabinet.addEventListener('click', () => {
+        trophyCabinetModal.style.display = 'none';
+      });
+    }
+
+    const btnExportVerdictReel = document.getElementById('btnExportVerdictReel');
+    if (btnExportVerdictReel) {
+      btnExportVerdictReel.addEventListener('click', () => {
+        if (window.VibePoster && typeof window.VibePoster.exportAnimatedVerdictReel === 'function') {
+          window.VibePoster.exportAnimatedVerdictReel().then(() => {
+            showToast('🎬 4-Second Animated Clash & Verdict Story Reel Exported!');
+          });
+        }
+      });
+    }
+
     const btnExportDuelPoster = document.getElementById('btnExportDuelPoster');
     if (btnExportDuelPoster) {
       btnExportDuelPoster.addEventListener('click', () => {

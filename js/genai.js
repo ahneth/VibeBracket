@@ -1,4 +1,4 @@
-// Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: js/genai.js
+// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/genai.js | App: VibeBracket Arena
 /**
  * File: js/genai.js
  * Description: 32-Seed GenAI Topic Studio & Real-Time Entity Synthesizer (Tier 1: OpenRouter BYOK 32-Seed LLM JSON; Tier 2: Live Wikipedia/Wikimedia REST Entity Resolution; Tier 3: 32-Seed Multi-Domain Curated Knowledge Graphs) with automatic real-time seed image lookup.
@@ -183,6 +183,260 @@ window.VibeGenAI = (() => {
 
   // Expanded 32-Seed Domain-Pure Knowledge Graphs (FD-P0-20261116-01 — Zero Cross-Domain Mixing & Zero Generic Suffixes)
   const DOMAIN_BANKS = [
+    {
+      id: 'anime-isekai-fantasy-series',
+      domainCategory: 'anime_fantasy',
+      requiredQualifiers: ['isekai', 'fantasy anime', 'reincarnation'],
+      conflictQualifiers: ['football', 'ramen', 'billboard', 'cyberpunk'],
+      keywords: ['isekai', 'isekai anime', 'fantasy anime', 'reincarnation anime', 'other world anime'],
+      emojis: ['⚔️', '✨', '🐉', '🔮', '🛡️', '👑', '🔥', '📜'],
+      items: [
+        { name: 'Re:Zero − Starting Life in Another World', tag: 'Subaru Natsuki · Return by Death', emoji: '🔮', searchQuery: 'Re:Zero', wikiTitle: 'Re:Zero − Starting Life in Another World' },
+        { name: 'Mushoku Tensei: Jobless Reincarnation', tag: 'Rudeus Greyrat · Six-Faced World', emoji: '🪄', searchQuery: 'Mushoku Tensei', wikiTitle: 'Mushoku Tensei' },
+        { name: 'That Time I Got Reincarnated as a Slime', tag: 'Rimuru Tempest · Jura Tempest', emoji: '💧', searchQuery: 'That Time I Got Reincarnated as a Slime', wikiTitle: 'That Time I Got Reincarnated as a Slime' },
+        { name: 'KonoSuba: God’s Blessing on This Wonderful World!', tag: 'Kazuma, Aqua, Megumin & Darkness', emoji: '💥', searchQuery: 'KonoSuba', wikiTitle: 'KonoSuba' },
+        { name: 'Overlord', tag: 'Ainz Ooal Gown · Nazarick', emoji: '💀', searchQuery: 'Overlord (novel series)', wikiTitle: 'Overlord (novel series)' },
+        { name: 'Sword Art Online', tag: 'Kirito & Asuna · Aincrad', emoji: '⚔️', searchQuery: 'Sword Art Online', wikiTitle: 'Sword Art Online' },
+        { name: 'The Rising of the Shield Hero', tag: 'Naofumi Iwatani & Raphtalia', emoji: '🛡️', searchQuery: 'The Rising of the Shield Hero', wikiTitle: 'The Rising of the Shield Hero' },
+        { name: 'No Game No Life', tag: 'Sora & Shiro · Disboard', emoji: '♟️', searchQuery: 'No Game No Life', wikiTitle: 'No Game No Life' },
+        { name: 'Saga of Tanya the Evil', tag: 'Tanya Degurechaff · Empire', emoji: '🎖️', searchQuery: 'The Saga of Tanya the Evil', wikiTitle: 'The Saga of Tanya the Evil' },
+        { name: 'Log Horizon', tag: 'Shiroe · Elder Tale Strategy', emoji: '👓', searchQuery: 'Log Horizon', wikiTitle: 'Log Horizon' },
+        { name: 'The Eminence in Shadow', tag: 'Cid Kagenou · Shadow Garden', emoji: '🌑', searchQuery: 'The Eminence in Shadow', wikiTitle: 'The Eminence in Shadow' },
+        { name: 'Shangri-La Frontier', tag: 'Sunraku · VRMMO Mastery', emoji: '🐦', searchQuery: 'Shangri-La Frontier', wikiTitle: 'Shangri-La Frontier' },
+        { name: 'Frieren: Beyond Journey’s End', tag: 'Elven Mage · High Fantasy', emoji: '🌿', searchQuery: 'Frieren', wikiTitle: 'Frieren' },
+        { name: 'Delicious in Dungeon', tag: 'Laios Party · Monster Cuisine', emoji: '🍲', searchQuery: 'Delicious in Dungeon', wikiTitle: 'Delicious in Dungeon' },
+        { name: 'Grimgar of Fantasy and Ash', tag: 'Haruhiro · Survival Realism', emoji: '🗡️', searchQuery: 'Grimgar of Fantasy and Ash', wikiTitle: 'Grimgar of Fantasy and Ash' },
+        { name: 'Ascendance of a Bookworm', tag: 'Myne · Printing Revolution', emoji: '📚', searchQuery: 'Ascendance of a Bookworm', wikiTitle: 'Ascendance of a Bookworm' },
+        { name: 'My Next Life as a Villainess', tag: 'Catarina Claes · Doom Flags', emoji: '🌸', searchQuery: 'My Next Life as a Villainess: All Routes Lead to Doom!', wikiTitle: 'My Next Life as a Villainess: All Routes Lead to Doom!' },
+        { name: 'Campfire Cooking in Another World', tag: 'Mukouda & Fel · Gourmet Isekai', emoji: '🍖', searchQuery: 'Campfire Cooking in Another World with My Absurd Skill', wikiTitle: 'Campfire Cooking in Another World with My Absurd Skill' },
+        { name: 'Uncle from Another World', tag: 'Yousuke · SEGA Retro Comedy', emoji: '🎮', searchQuery: 'Uncle from Another World', wikiTitle: 'Uncle from Another World' },
+        { name: 'Bofuri: I Don\'t Want to Get Hurt', tag: 'Maple · Max Defense Fortress', emoji: '🛡️', searchQuery: 'Bofuri', wikiTitle: 'Bofuri' },
+        { name: 'So I’m a Spider, So What?', tag: 'Kumoko · Labyrinth Evolution', emoji: '🕷️', searchQuery: 'So I’m a Spider, So What?', wikiTitle: 'So I’m a Spider, So What?' },
+        { name: 'The Vision of Escaflowne', tag: 'Hitomi & Van · 90s Mecha Isekai', emoji: '🦋', searchQuery: 'The Vision of Escaflowne', wikiTitle: 'The Vision of Escaflowne' },
+        { name: 'Inuyasha', tag: 'Kagome & Inuyasha · Feudal Era', emoji: '🏹', searchQuery: 'Inuyasha', wikiTitle: 'Inuyasha' },
+        { name: 'Spirited Away', tag: 'Chihiro · Spirit Realm Classic', emoji: '🏮', searchQuery: 'Spirited Away', wikiTitle: 'Spirited Away' },
+        { name: 'Digimon Adventure', tag: 'DigiDestined · Digital World', emoji: '🦖', searchQuery: 'Digimon Adventure (1999 TV series)', wikiTitle: 'Digimon Adventure (1999 TV series)' },
+        { name: 'Magic Knight Rayearth', tag: 'Hikaru, Umi & Fuu · Cephiro', emoji: '✨', searchQuery: 'Magic Knight Rayearth', wikiTitle: 'Magic Knight Rayearth' },
+        { name: 'Cautious Hero', tag: 'Seiya Ryuuguuin · Overprepared', emoji: '⚔️', searchQuery: 'Cautious Hero: The Hero Is Overpowered but Overly Cautious', wikiTitle: 'Cautious Hero: The Hero Is Overpowered but Overly Cautious' },
+        { name: 'Tsukimichi: Moonlit Fantasy', tag: 'Makoto Misumi · Demiplane', emoji: '🌙', searchQuery: 'Tsukimichi: Moonlit Fantasy', wikiTitle: 'Tsukimichi: Moonlit Fantasy' },
+        { name: 'Skeleton Knight in Another World', tag: 'Arc · Holy Knight Wanderer', emoji: '💀', searchQuery: 'Skeleton Knight in Another World', wikiTitle: 'Skeleton Knight in Another World' },
+        { name: 'Isekai Quartet', tag: 'Chibi Crossover Academy', emoji: '🏫', searchQuery: 'Isekai Quartet', wikiTitle: 'Isekai Quartet' },
+        { name: 'Drifters', tag: 'Shimazu Toyohisa · Historical Clash', emoji: '⚔️', searchQuery: 'Drifters (manga)', wikiTitle: 'Drifters (manga)' },
+        { name: 'The Twelve Kingdoms', tag: 'Youko Nakajima · Classic Epic', emoji: '👑', searchQuery: 'The Twelve Kingdoms', wikiTitle: 'The Twelve Kingdoms' }
+      ]
+    },
+    {
+      id: 'gaming-indie-roguelikes',
+      domainCategory: 'gaming_indie',
+      requiredQualifiers: ['indie', 'roguelike', 'roguelite', 'indie games'],
+      conflictQualifiers: ['football', 'ramen', 'pop anthems', 'isekai'],
+      keywords: ['indie games', 'roguelike', 'roguelikes', 'roguelite', 'best indie games', 'indie masterpieces'],
+      emojis: ['🎮', '🕹️', '⚔️', '💎', '🔥', '🃏', '🌌', '👑'],
+      items: [
+        { name: 'Hades', tag: 'Supergiant Games · Zagreus Escape', emoji: '🔥', searchQuery: 'Hades (video game)', wikiTitle: 'Hades (video game)' },
+        { name: 'Hollow Knight', tag: 'Team Cherry · Hallownest Metroidvania', emoji: '🦋', searchQuery: 'Hollow Knight', wikiTitle: 'Hollow Knight' },
+        { name: 'Celeste', tag: 'Maddy Makes Games · Precision Platformer', emoji: '🍓', searchQuery: 'Celeste (video game)', wikiTitle: 'Celeste (video game)' },
+        { name: 'Balatro', tag: 'LocalThunk · Poker Roguelike Phenomenon', emoji: '🃏', searchQuery: 'Balatro (video game)', wikiTitle: 'Balatro (video game)' },
+        { name: 'Slay the Spire', tag: 'MegaCrit · Deckbuilder Gold Standard', emoji: '🗡️', searchQuery: 'Slay the Spire', wikiTitle: 'Slay the Spire' },
+        { name: 'Dead Cells', tag: 'Motion Twin · RogueVANIA Action', emoji: '⚔️', searchQuery: 'Dead Cells', wikiTitle: 'Dead Cells' },
+        { name: 'Vampire Survivors', tag: 'poncle · Bullet Heaven Pioneer', emoji: '🧄', searchQuery: 'Vampire Survivors', wikiTitle: 'Vampire Survivors' },
+        { name: 'Stardew Valley', tag: 'ConcernedApe · Pelican Town', emoji: '🌾', searchQuery: 'Stardew Valley', wikiTitle: 'Stardew Valley' },
+        { name: 'Undertale', tag: 'Toby Fox · Pacifist RPG Icon', emoji: '❤️', searchQuery: 'Undertale', wikiTitle: 'Undertale' },
+        { name: 'Outer Wilds', tag: 'Mobius Digital · 22-Minute Time Loop', emoji: '🌌', searchQuery: 'Outer Wilds', wikiTitle: 'Outer Wilds' },
+        { name: 'Disco Elysium', tag: 'ZA/UM · Narrative Detective RPG', emoji: '🕵️', searchQuery: 'Disco Elysium', wikiTitle: 'Disco Elysium' },
+        { name: 'Cuphead', tag: 'Studio MDHR · 1930s Rubber Hose Bosses', emoji: '☕', searchQuery: 'Cuphead', wikiTitle: 'Cuphead' },
+        { name: 'Shovel Knight', tag: 'Yacht Club Games · 8-Bit Tribute', emoji: '🪓', searchQuery: 'Shovel Knight', wikiTitle: 'Shovel Knight' },
+        { name: 'The Binding of Isaac: Rebirth', tag: 'Edmund McMillen · Dungeon Crawler', emoji: '😭', searchQuery: 'The Binding of Isaac: Rebirth', wikiTitle: 'The Binding of Isaac: Rebirth' },
+        { name: 'Enter the Gungeon', tag: 'Dodge Roll · Bullet-Hell Dungeon', emoji: '🔫', searchQuery: 'Enter the Gungeon', wikiTitle: 'Enter the Gungeon' },
+        { name: 'Risk of Rain 2', tag: 'Hopoo Games · 3D Co-op Chaos', emoji: '🌧️', searchQuery: 'Risk of Rain 2', wikiTitle: 'Risk of Rain 2' },
+        { name: 'FTL: Faster Than Light', tag: 'Subset Games · Spaceship Tactical Sim', emoji: '🚀', searchQuery: 'FTL: Faster Than Light', wikiTitle: 'FTL: Faster Than Light' },
+        { name: 'Into the Breach', tag: 'Subset Games · Mecha Grid Tactics', emoji: '🤖', searchQuery: 'Into the Breach', wikiTitle: 'Into the Breach' },
+        { name: 'Inscryption', tag: 'Daniel Mullins · Meta Card Horror', emoji: '🃏', searchQuery: 'Inscryption', wikiTitle: 'Inscryption' },
+        { name: 'Return of the Obra Dinn', tag: 'Lucas Pope · 1-Bit Mystery', emoji: '🚢', searchQuery: 'Return of the Obra Dinn', wikiTitle: 'Return of the Obra Dinn' },
+        { name: 'Papers, Please', tag: 'Lucas Pope · Arstotzka Border Sim', emoji: '🛂', searchQuery: 'Papers, Please', wikiTitle: 'Papers, Please' },
+        { name: 'Hotline Miami', tag: 'Dennaton Games · Neon Synthwave', emoji: '🎭', searchQuery: 'Hotline Miami', wikiTitle: 'Hotline Miami' },
+        { name: 'Katana ZERO', tag: 'Askiisoft · Neo-Noir Time Blade', emoji: '🥷', searchQuery: 'Katana Zero', wikiTitle: 'Katana Zero' },
+        { name: 'Tunic', tag: 'Andrew Shouldice · Isometric Secret Book', emoji: '🦊', searchQuery: 'Tunic (video game)', wikiTitle: 'Tunic (video game)' },
+        { name: 'Animal Well', tag: 'Billy Basso · Puzzle Metroidvania', emoji: '🐇', searchQuery: 'Animal Well', wikiTitle: 'Animal Well' },
+        { name: 'Dave the Diver', tag: 'Mintrocket · Sushi & Deep Sea', emoji: '🤿', searchQuery: 'Dave the Diver', wikiTitle: 'Dave the Diver' },
+        { name: 'Cult of the Lamb', tag: 'Massive Monster · Roguelike Base', emoji: '🐑', searchQuery: 'Cult of the Lamb', wikiTitle: 'Cult of the Lamb' },
+        { name: 'Spelunky 2', tag: 'Mossmouth · Precision Cave Run', emoji: '⛏️', searchQuery: 'Spelunky 2', wikiTitle: 'Spelunky 2' },
+        { name: 'Darkest Dungeon', tag: 'Red Hook Studios · Gothic Stress', emoji: '🕯️', searchQuery: 'Darkest Dungeon', wikiTitle: 'Darkest Dungeon' },
+        { name: 'Noita', tag: 'Nolla Games · Every Pixel Simulated', emoji: '🧙', searchQuery: 'Noita (video game)', wikiTitle: 'Noita (video game)' },
+        { name: 'Ori and the Will of the Wisps', tag: 'Moon Studios · Painted Platformer', emoji: '✨', searchQuery: 'Ori and the Will of the Wisps', wikiTitle: 'Ori and the Will of the Wisps' },
+        { name: 'Subnautica', tag: 'Unknown Worlds · Ocean Survival', emoji: '🌊', searchQuery: 'Subnautica', wikiTitle: 'Subnautica' }
+      ]
+    },
+    {
+      id: 'food-global-desserts-pastries',
+      domainCategory: 'food_dessert',
+      requiredQualifiers: ['dessert', 'desserts', 'pastry', 'pastries', 'sweet'],
+      conflictQualifiers: ['ramen', 'football', 'indie', 'isekai'],
+      keywords: ['desserts', 'pastries', 'global desserts', 'best desserts', 'bakery', 'sweet treats'],
+      emojis: ['🍰', '🥐', '🍮', '🍨', '🍫', '🧁', '🍓', '🥧'],
+      items: [
+        { name: 'Tiramisu', tag: 'Italy · Espresso Mascarpone Classic', emoji: '☕', searchQuery: 'Tiramisu', wikiTitle: 'Tiramisu' },
+        { name: 'Crème Brûlée', tag: 'France · Caramelized Custard', emoji: '🍮', searchQuery: 'Crème brûlée', wikiTitle: 'Crème brûlée' },
+        { name: 'Portuguese Egg Tart (Pastel de Nata)', tag: 'Lisbon & Macau · Flaky Custard', emoji: '🥧', searchQuery: 'Pastel de nata', wikiTitle: 'Pastel de nata' },
+        { name: 'Croissant', tag: 'France · Laminated Butter Viennoiserie', emoji: '🥐', searchQuery: 'Croissant', wikiTitle: 'Croissant' },
+        { name: 'Basque Burnt Cheesecake', tag: 'San Sebastián · Caramelized Cream', emoji: '🧀', searchQuery: 'Cheesecake', wikiTitle: 'Cheesecake' },
+        { name: 'Mille-Feuille', tag: 'France · Crisp Puff & Pastry Cream', emoji: '🍰', searchQuery: 'Mille-feuille', wikiTitle: 'Mille-feuille' },
+        { name: 'Baklava', tag: 'Turkey & Levant · Pistachio Phyllo', emoji: '🍯', searchQuery: 'Baklava', wikiTitle: 'Baklava' },
+        { name: 'Matcha Parfait', tag: 'Kyoto · Uji Green Tea Layers', emoji: '🍵', searchQuery: 'Parfait', wikiTitle: 'Parfait' },
+        { name: 'Mango Pomelo Sago (楊枝甘露)', tag: 'Hong Kong · Chilled Dessert Icon', emoji: '🥭', searchQuery: 'Mango pomelo sago', wikiTitle: 'Mango pomelo sago' },
+        { name: 'Cannoli', tag: 'Sicily · Ricotta Filled Shells', emoji: '🍫', searchQuery: 'Cannoli', wikiTitle: 'Cannoli' },
+        { name: 'Gelato', tag: 'Italy · Slow-Churned Artisan Cream', emoji: '🍨', searchQuery: 'Gelato', wikiTitle: 'Gelato' },
+        { name: 'Churros con Chocolate', tag: 'Spain · Crisp Fried Dough', emoji: '🍫', searchQuery: 'Churro', wikiTitle: 'Churro' },
+        { name: 'Macaron', tag: 'Paris · Almond Meringue Ganache', emoji: '🍬', searchQuery: 'Macaron', wikiTitle: 'Macaron' },
+        { name: 'Japanese Soufflé Pancake', tag: 'Tokyo · Cloud-Light Jiggly Stack', emoji: '🥞', searchQuery: 'Pancake', wikiTitle: 'Pancake' },
+        { name: 'Mochi & Daifuku', tag: 'Japan · Strawberry Red Bean Rice Cake', emoji: '🍡', searchQuery: 'Daifuku', wikiTitle: 'Daifuku' },
+        { name: 'Kouign-Amann', tag: 'Brittany · Caramelized Butter Pastry', emoji: '🥐', searchQuery: 'Kouign-amann', wikiTitle: 'Kouign-amann' },
+        { name: 'Sachertorte', tag: 'Vienna · Apricot Dark Chocolate', emoji: '🍰', searchQuery: 'Sachertorte', wikiTitle: 'Sachertorte' },
+        { name: 'Black Forest Cake', tag: 'Germany · Kirsch & Cherries', emoji: '🍒', searchQuery: 'Black Forest gateau', wikiTitle: 'Black Forest gateau' },
+        { name: 'Pavlova', tag: 'Australia & NZ · Crisp Meringue & Fruit', emoji: '🍓', searchQuery: 'Pavlova (cake)', wikiTitle: 'Pavlova (cake)' },
+        { name: 'Sticky Toffee Pudding', tag: 'UK · Warm Date Sponge & Caramel', emoji: '🍮', searchQuery: 'Sticky toffee pudding', wikiTitle: 'Sticky toffee pudding' },
+        { name: 'Key Lime Pie', tag: 'Florida Keys · Tart Citrus Graham', emoji: '🍋', searchQuery: 'Key lime pie', wikiTitle: 'Key lime pie' },
+        { name: 'Apple Strudel (Apfelstrudel)', tag: 'Austria · Paper-Thin Spiced Apple', emoji: '🍏', searchQuery: 'Apple strudel', wikiTitle: 'Apple strudel' },
+        { name: 'Tres Leches Cake', tag: 'Latin America · Three-Milk Sponge', emoji: '🥛', searchQuery: 'Tres leches cake', wikiTitle: 'Tres leches cake' },
+        { name: 'Gulab Jamun', tag: 'India · Rosewater Cardamom Syrup', emoji: '🍯', searchQuery: 'Gulab jamun', wikiTitle: 'Gulab jamun' },
+        { name: 'Bingsu (Korean Shaved Ice)', tag: 'Seoul · Milk Snow & Red Bean', emoji: '🍧', searchQuery: 'Bingsu', wikiTitle: 'Bingsu' },
+        { name: 'Alfajores', tag: 'Argentina · Dulce de Leche Shortbread', emoji: '🍪', searchQuery: 'Alfajor', wikiTitle: 'Alfajor' },
+        { name: 'Éclair', tag: 'France · Choux & Chocolate Glaze', emoji: '🍫', searchQuery: 'Éclair', wikiTitle: 'Éclair' },
+        { name: 'Cinnamon Roll (Kanelbulle)', tag: 'Sweden · Cardamom Pearl Sugar', emoji: '🥨', searchQuery: 'Cinnamon roll', wikiTitle: 'Cinnamon roll' },
+        { name: 'Banana Split', tag: 'USA · Classic Soda Fountain Trio', emoji: '🍌', searchQuery: 'Banana split', wikiTitle: 'Banana split' },
+        { name: 'Kulfi', tag: 'South Asia · Dense Saffron Pistachio', emoji: '🍨', searchQuery: 'Kulfi', wikiTitle: 'Kulfi' },
+        { name: 'Pineapple Bun (菠蘿包) with Butter', tag: 'Hong Kong · Crisp Sugar Crust', emoji: '🍍', searchQuery: 'Pineapple bun', wikiTitle: 'Pineapple bun' },
+        { name: 'Profiteroles', tag: 'France · Cream Puffs & Hot Fudge', emoji: '🍫', searchQuery: 'Profiterole', wikiTitle: 'Profiterole' }
+      ]
+    },
+
+    {
+      id: 'uefa-europa-global-clubs',
+      domainCategory: 'football_club',
+      requiredQualifiers: ['europa', 'conference', 'libertadores', 'global football'],
+      conflictQualifiers: ['nba', 'ramen', 'anime', 'formula 1', 'premier league'],
+      keywords: ['europa league', 'uefa europa', 'conference league', 'copa libertadores', 'global football clubs', 'world football clubs'],
+      emojis: ['⚽', '🏆', '🌍', '🔥', '🛡️', '🦁', '🦅', '⭐'],
+      items: [
+        { name: 'Sevilla FC', tag: 'Record 7x Europa Winners', emoji: '⚽', searchQuery: 'Sevilla FC', wikiTitle: 'Sevilla FC' },
+        { name: 'Atalanta BC', tag: '2024 Dublin Champions', emoji: '🏆', searchQuery: 'Atalanta BC', wikiTitle: 'Atalanta BC' },
+        { name: 'Eintracht Frankfurt', tag: '2022 Europa Champions', emoji: '🦅', searchQuery: 'Eintracht Frankfurt', wikiTitle: 'Eintracht Frankfurt' },
+        { name: 'Villarreal CF', tag: 'El Submarino Amarillo', emoji: '🟡', searchQuery: 'Villarreal CF', wikiTitle: 'Villarreal CF' },
+        { name: 'AS Roma', tag: 'Giallorossi · Stadio Olimpico', emoji: '🐺', searchQuery: 'AS Roma', wikiTitle: 'AS Roma' },
+        { name: 'SS Lazio', tag: 'Biancocelesti · Rome', emoji: '🦅', searchQuery: 'S.S. Lazio', wikiTitle: 'S.S. Lazio' },
+        { name: 'ACF Fiorentina', tag: 'La Viola · Florence', emoji: '⚜️', searchQuery: 'ACF Fiorentina', wikiTitle: 'ACF Fiorentina' },
+        { name: 'Athletic Bilbao', tag: 'San Mamés Lions', emoji: '🦁', searchQuery: 'Athletic Bilbao', wikiTitle: 'Athletic Bilbao' },
+        { name: 'Real Sociedad', tag: 'Txuri-urdin · San Sebastián', emoji: '⚽', searchQuery: 'Real Sociedad', wikiTitle: 'Real Sociedad' },
+        { name: 'Real Betis', tag: 'Los Verdiblancos · Seville', emoji: '🟢', searchQuery: 'Real Betis', wikiTitle: 'Real Betis' },
+        { name: 'FC Porto', tag: 'Dragões · Estádio do Dragão', emoji: '🐉', searchQuery: 'FC Porto', wikiTitle: 'FC Porto' },
+        { name: 'SL Benfica', tag: 'Águias · Lisbon Giants', emoji: '🦅', searchQuery: 'S.L. Benfica', wikiTitle: 'S.L. Benfica' },
+        { name: 'Sporting CP', tag: 'Leões · Alvalade', emoji: '🦁', searchQuery: 'Sporting CP', wikiTitle: 'Sporting CP' },
+        { name: 'SC Braga', tag: 'Os Arsenalistas', emoji: '🛡️', searchQuery: 'S.C. Braga', wikiTitle: 'S.C. Braga' },
+        { name: 'AFC Ajax', tag: 'Godenzonen · Amsterdam', emoji: '⭐', searchQuery: 'AFC Ajax', wikiTitle: 'AFC Ajax' },
+        { name: 'PSV Eindhoven', tag: 'Boeren · Philips Stadion', emoji: '⚡', searchQuery: 'PSV Eindhoven', wikiTitle: 'PSV Eindhoven' },
+        { name: 'Feyenoord', tag: 'De Kuip · Rotterdam', emoji: '🔥', searchQuery: 'Feyenoord', wikiTitle: 'Feyenoord' },
+        { name: 'Olympique Lyonnais', tag: 'Les Gones · Lyon', emoji: '🦁', searchQuery: 'Olympique Lyonnais', wikiTitle: 'Olympique Lyonnais' },
+        { name: 'Olympique de Marseille', tag: 'Stade Vélodrome Icons', emoji: '⭐', searchQuery: 'Olympique de Marseille', wikiTitle: 'Olympique de Marseille' },
+        { name: 'AS Monaco', tag: 'Les Rouge et Blanc', emoji: '👑', searchQuery: 'AS Monaco FC', wikiTitle: 'AS Monaco FC' },
+        { name: 'LOSC Lille', tag: 'Les Dogues · Ligue 1', emoji: '🐕', searchQuery: 'LOSC Lille', wikiTitle: 'LOSC Lille' },
+        { name: 'Rangers FC', tag: 'Ibrox · Glasgow', emoji: '🔵', searchQuery: 'Rangers F.C.', wikiTitle: 'Rangers F.C.' },
+        { name: 'Celtic FC', tag: 'Paradise · Glasgow', emoji: '🍀', searchQuery: 'Celtic F.C.', wikiTitle: 'Celtic F.C.' },
+        { name: 'Galatasaray SK', tag: 'Cimbom · Istanbul', emoji: '🦁', searchQuery: 'Galatasaray S.K. (football)', wikiTitle: 'Galatasaray S.K. (football)' },
+        { name: 'Fenerbahçe SK', tag: 'Sarı Kanaryalar · Istanbul', emoji: '🟡', searchQuery: 'Fenerbahçe S.K. (football)', wikiTitle: 'Fenerbahçe S.K. (football)' },
+        { name: 'Olympiacos FC', tag: '2024 Conference Champions', emoji: '🏆', searchQuery: 'Olympiacos F.C.', wikiTitle: 'Olympiacos F.C.' },
+        { name: 'CA Boca Juniors', tag: 'La Bombonera · Buenos Aires', emoji: '💙', searchQuery: 'Boca Juniors', wikiTitle: 'Boca Juniors' },
+        { name: 'CA River Plate', tag: 'El Monumental · Buenos Aires', emoji: '🔴', searchQuery: 'Club Atlético River Plate', wikiTitle: 'Club Atlético River Plate' },
+        { name: 'CR Flamengo', tag: 'Mengão · Maracanã', emoji: '🔥', searchQuery: 'CR Flamengo', wikiTitle: 'CR Flamengo' },
+        { name: 'SE Palmeiras', tag: 'Verdão · São Paulo', emoji: '🌴', searchQuery: 'Sociedade Esportiva Palmeiras', wikiTitle: 'Sociedade Esportiva Palmeiras' },
+        { name: 'Santos FC', tag: 'Vila Belmiro Icons', emoji: '👑', searchQuery: 'Santos FC', wikiTitle: 'Santos FC' },
+        { name: 'Al Ahly SC', tag: 'African Century Club · Cairo', emoji: '🦅', searchQuery: 'Al Ahly SC', wikiTitle: 'Al Ahly SC' }
+      ]
+    },
+    {
+      id: 'music-2000s-2010s-pop-anthems',
+      domainCategory: 'music_pop',
+      requiredQualifiers: ['2000s', '2010s', 'billboard', 'pop anthems', 'y2k'],
+      conflictQualifiers: ['k-pop', 'football', 'ramen', 'gundam'],
+      keywords: ['2000s', '2010s', 'billboard pop', 'pop anthems', 'throwback pop', 'y2k pop', 'millennium pop'],
+      emojis: ['🎤', '💿', '🔥', '🎶', '✨', '👑', '🎧', '💃'],
+      items: [
+        { name: 'Toxic — Britney Spears', tag: '2003 Pop Masterpiece', emoji: '🎤', searchQuery: 'Toxic (song)', wikiTitle: 'Toxic (song)' },
+        { name: 'Crazy in Love — Beyoncé ft. Jay-Z', tag: '2003 Horn-Driven Anthem', emoji: '👑', searchQuery: 'Crazy in Love', wikiTitle: 'Crazy in Love' },
+        { name: 'Since U Been Gone — Kelly Clarkson', tag: '2004 Power-Pop Breakout', emoji: '🎸', searchQuery: 'Since U Been Gone', wikiTitle: 'Since U Been Gone' },
+        { name: 'Umbrella — Rihanna ft. Jay-Z', tag: '2007 Global #1 Smash', emoji: '☔', searchQuery: 'Umbrella (song)', wikiTitle: 'Umbrella (song)' },
+        { name: 'Bad Romance — Lady Gaga', tag: '2009 Fame Monster Peak', emoji: '🔥', searchQuery: 'Bad Romance', wikiTitle: 'Bad Romance' },
+        { name: 'Poker Face — Lady Gaga', tag: '2008 Synth-Pop Juggernaut', emoji: '🃏', searchQuery: 'Poker Face (song)', wikiTitle: 'Poker Face (song)' },
+        { name: 'Rolling in the Deep — Adele', tag: '2010 Soul-Pop Phenomenon', emoji: '🎶', searchQuery: 'Rolling in the Deep', wikiTitle: 'Rolling in the Deep' },
+        { name: 'Teenage Dream — Katy Perry', tag: '2010 Euphoric Pop Hit', emoji: '✨', searchQuery: 'Teenage Dream (Katy Perry song)', wikiTitle: 'Teenage Dream (Katy Perry song)' },
+        { name: 'Firework — Katy Perry', tag: '2010 Stadium Empowerment', emoji: '🎆', searchQuery: 'Firework (song)', wikiTitle: 'Firework (song)' },
+        { name: 'Call Me Maybe — Carly Rae Jepsen', tag: '2011 Earworm of the Decade', emoji: '📞', searchQuery: 'Call Me Maybe', wikiTitle: 'Call Me Maybe' },
+        { name: 'We Found Love — Rihanna ft. Calvin Harris', tag: '2011 EDM-Pop Era Peak', emoji: '💿', searchQuery: 'We Found Love', wikiTitle: 'We Found Love' },
+        { name: 'Somebody That I Used to Know — Gotye', tag: '2011 Art-Pop Crossover', emoji: '🎨', searchQuery: 'Somebody That I Used to Know', wikiTitle: 'Somebody That I Used to Know' },
+        { name: 'Royals — Lorde', tag: '2013 Minimalist Alt-Pop Shift', emoji: '👑', searchQuery: 'Royals (Lorde song)', wikiTitle: 'Royals (Lorde song)' },
+        { name: 'Uptown Funk — Mark Ronson ft. Bruno Mars', tag: '2014 Boogie-Funk Blockbuster', emoji: '🕺', searchQuery: 'Uptown Funk', wikiTitle: 'Uptown Funk' },
+        { name: 'Blank Space — Taylor Swift', tag: '2014 1989 Synth-Pop Apex', emoji: '✍️', searchQuery: 'Blank Space', wikiTitle: 'Blank Space' },
+        { name: 'Shake It Off — Taylor Swift', tag: '2014 Brass-Driven Anthem', emoji: '💃', searchQuery: 'Shake It Off', wikiTitle: 'Shake It Off' },
+        { name: 'Sorry — Justin Bieber', tag: '2015 Tropical House Crossover', emoji: '🎧', searchQuery: 'Sorry (Justin Bieber song)', wikiTitle: 'Sorry (Justin Bieber song)' },
+        { name: 'Into You — Ariana Grande', tag: '2016 Max Martin Pop Perfection', emoji: '✨', searchQuery: 'Into You (Ariana Grande song)', wikiTitle: 'Into You (Ariana Grande song)' },
+        { name: 'Thank U, Next — Ariana Grande', tag: '2018 Self-Love Cultural Reset', emoji: '💌', searchQuery: 'Thank U, Next (song)', wikiTitle: 'Thank U, Next (song)' },
+        { name: 'Shape of You — Ed Sheeran', tag: '2017 Streaming Era Titan', emoji: '🎶', searchQuery: 'Shape of You', wikiTitle: 'Shape of You' },
+        { name: 'New Rules — Dua Lipa', tag: '2017 Dance-Pop Breakout', emoji: '💃', searchQuery: 'New Rules (song)', wikiTitle: 'New Rules (song)' },
+        { name: 'Bad Guy — Billie Eilish', tag: '2019 Bass-Minimalist Phenomenon', emoji: '🖤', searchQuery: 'Bad Guy (Billie Eilish song)', wikiTitle: 'Bad Guy (Billie Eilish song)' },
+        { name: 'Blinding Lights — The Weeknd', tag: 'Synthwave Billboard All-Time #1', emoji: '🌃', searchQuery: 'Blinding Lights', wikiTitle: 'Blinding Lights' },
+        { name: 'Hey Ya! — OutKast', tag: '2003 Shake-It Polaroid Hit', emoji: '📸', searchQuery: 'Hey Ya!', wikiTitle: 'Hey Ya!' },
+        { name: 'Yeah! — Usher ft. Lil Jon & Ludacris', tag: '2004 Crunk&B Club King', emoji: '🔥', searchQuery: 'Yeah! (Usher song)', wikiTitle: 'Yeah! (Usher song)' },
+        { name: 'Hips Don’t Lie — Shakira ft. Wyclef Jean', tag: '2006 Global Dancefloor Standard', emoji: '💃', searchQuery: 'Hips Don’t Lie', wikiTitle: 'Hips Don’t Lie' },
+        { name: 'SexyBack — Justin Timberlake', tag: '2006 Timbaland Electro-Funk', emoji: '🕶️', searchQuery: 'SexyBack', wikiTitle: 'SexyBack' },
+        { name: 'Viva la Vida — Coldplay', tag: '2008 Orchestral Stadium Chorus', emoji: '🔔', searchQuery: 'Viva la Vida', wikiTitle: 'Viva la Vida' },
+        { name: 'Single Ladies (Put a Ring on It) — Beyoncé', tag: '2008 Choreography Icon', emoji: '💍', searchQuery: 'Single Ladies (Put a Ring on It)', wikiTitle: 'Single Ladies (Put a Ring on It)' },
+        { name: 'Party in the U.S.A. — Miley Cyrus', tag: '2009 Sing-Along Staple', emoji: '🎉', searchQuery: 'Party in the U.S.A.', wikiTitle: 'Party in the U.S.A.' },
+        { name: 'TiK ToK — Kesha', tag: '2009 Electropop Party Starter', emoji: '⏰', searchQuery: 'Tik Tok (song)', wikiTitle: 'Tik Tok (song)' },
+        { name: 'Run Away with Me — Carly Rae Jepsen', tag: '2015 Saxophone Cult Masterpiece', emoji: '🎷', searchQuery: 'Run Away with Me', wikiTitle: 'Run Away with Me' }
+      ]
+    },
+    {
+      id: 'cinema-cyberpunk-scifi-movies',
+      domainCategory: 'cinema_scifi',
+      requiredQualifiers: ['cyberpunk', 'sci-fi', 'science fiction', 'scifi', 'dystopian'],
+      conflictQualifiers: ['ghibli', 'marvel', 'hong kong cinema', 'ramen', 'football'],
+      keywords: ['cyberpunk', 'sci-fi movies', 'science fiction movies', 'scifi films', 'futuristic movies', 'dystopian sci-fi'],
+      emojis: ['🚀', '🤖', '🌌', '⚡', '👁️', '🛸', '🧬', '🎬'],
+      items: [
+        { name: 'Blade Runner (1982)', tag: 'Ridley Scott · Neo-Noir Cyberpunk', emoji: '🌧️', searchQuery: 'Blade Runner', wikiTitle: 'Blade Runner' },
+        { name: 'Blade Runner 2049 (2017)', tag: 'Denis Villeneuve · K & Joi', emoji: '🌆', searchQuery: 'Blade Runner 2049', wikiTitle: 'Blade Runner 2049' },
+        { name: 'The Matrix (1999)', tag: 'Wachowskis · Bullet Time Revolution', emoji: '🕶️', searchQuery: 'The Matrix', wikiTitle: 'The Matrix' },
+        { name: 'Akira (1988)', tag: 'Katsuhiro Otomo · Neo-Tokyo', emoji: '🏍️', searchQuery: 'Akira (1988 film)', wikiTitle: 'Akira (1988 film)' },
+        { name: 'Ghost in the Shell (1995)', tag: 'Mamoru Oshii · Major Motoko Kusanagi', emoji: '🤖', searchQuery: 'Ghost in the Shell (1995 film)', wikiTitle: 'Ghost in the Shell (1995 film)' },
+        { name: '2001: A Space Odyssey (1968)', tag: 'Stanley Kubrick · HAL 9000', emoji: '🔴', searchQuery: '2001: A Space Odyssey', wikiTitle: '2001: A Space Odyssey' },
+        { name: 'Alien (1979)', tag: 'Ridley Scott · USCSS Nostromo', emoji: '👽', searchQuery: 'Alien (film)', wikiTitle: 'Alien (film)' },
+        { name: 'Aliens (1986)', tag: 'James Cameron · Ellen Ripley', emoji: '🛸', searchQuery: 'Aliens (film)', wikiTitle: 'Aliens (film)' },
+        { name: 'Terminator 2: Judgment Day (1991)', tag: 'James Cameron · T-800 & T-1000', emoji: '🤖', searchQuery: 'Terminator 2: Judgment Day', wikiTitle: 'Terminator 2: Judgment Day' },
+        { name: 'Dune: Part Two (2024)', tag: 'Denis Villeneuve · Arrakis Epic', emoji: '🏜️', searchQuery: 'Dune: Part Two', wikiTitle: 'Dune: Part Two' },
+        { name: 'Interstellar (2014)', tag: 'Christopher Nolan · Gargantua', emoji: '🕳️', searchQuery: 'Interstellar (film)', wikiTitle: 'Interstellar (film)' },
+        { name: 'Inception (2010)', tag: 'Christopher Nolan · Dream Heist', emoji: '🌀', searchQuery: 'Inception', wikiTitle: 'Inception' },
+        { name: 'Arrival (2016)', tag: 'Denis Villeneuve · Heptapod Language', emoji: '🛸', searchQuery: 'Arrival (film)', wikiTitle: 'Arrival (film)' },
+        { name: 'Ex Machina (2014)', tag: 'Alex Garland · Turing Test Thriller', emoji: '🧬', searchQuery: 'Ex Machina (film)', wikiTitle: 'Ex Machina (film)' },
+        { name: 'Children of Men (2006)', tag: 'Alfonso Cuarón · Single-Take Dystopia', emoji: '🎬', searchQuery: 'Children of Men', wikiTitle: 'Children of Men' },
+        { name: 'Minority Report (2002)', tag: 'Steven Spielberg · PreCrime 2054', emoji: '👁️', searchQuery: 'Minority Report (film)', wikiTitle: 'Minority Report (film)' },
+        { name: 'RoboCop (1987)', tag: 'Paul Verhoeven · Old Detroit Satire', emoji: '🚓', searchQuery: 'RoboCop', wikiTitle: 'RoboCop' },
+        { name: 'Total Recall (1990)', tag: 'Paul Verhoeven · Mars Memory Implant', emoji: '🪐', searchQuery: 'Total Recall (1990 film)', wikiTitle: 'Total Recall (1990 film)' },
+        { name: 'The Fifth Element (1997)', tag: 'Luc Besson · Korben Dallas & Leeloo', emoji: '💎', searchQuery: 'The Fifth Element', wikiTitle: 'The Fifth Element' },
+        { name: 'District 9 (2009)', tag: 'Neill Blomkamp · Johannesburg', emoji: '🛸', searchQuery: 'District 9', wikiTitle: 'District 9' },
+        { name: 'Edge of Tomorrow (2014)', tag: 'Doug Liman · Live Die Repeat', emoji: '⚡', searchQuery: 'Edge of Tomorrow', wikiTitle: 'Edge of Tomorrow' },
+        { name: 'Eternal Sunshine of the Spotless Mind (2004)', tag: 'Michel Gondry · Lacuna Inc.', emoji: '🧠', searchQuery: 'Eternal Sunshine of the Spotless Mind', wikiTitle: 'Eternal Sunshine of the Spotless Mind' },
+        { name: 'Her (2013)', tag: 'Spike Jonze · OS1 Samantha', emoji: '🎧', searchQuery: 'Her (2013 film)', wikiTitle: 'Her (2013 film)' },
+        { name: 'Everything Everywhere All at Once (2022)', tag: 'Daniels · Multiverse Bagel', emoji: '🥯', searchQuery: 'Everything Everywhere All at Once', wikiTitle: 'Everything Everywhere All at Once' },
+        { name: 'Snowpiercer (2013)', tag: 'Bong Joon-ho · Eternal Engine', emoji: '🚆', searchQuery: 'Snowpiercer', wikiTitle: 'Snowpiercer' },
+        { name: 'Mad Max: Fury Road (2015)', tag: 'George Miller · Furiosa & Citadel', emoji: '🔥', searchQuery: 'Mad Max: Fury Road', wikiTitle: 'Mad Max: Fury Road' },
+        { name: 'Star Wars: The Empire Strikes Back (1980)', tag: 'Irvin Kershner · Hoth & Cloud City', emoji: '⚔️', searchQuery: 'The Empire Strikes Back', wikiTitle: 'The Empire Strikes Back' },
+        { name: 'Back to the Future (1985)', tag: 'Robert Zemeckis · DeLorean 88 mph', emoji: '⚡', searchQuery: 'Back to the Future', wikiTitle: 'Back to the Future' },
+        { name: 'Jurassic Park (1993)', tag: 'Steven Spielberg · Isla Nublar', emoji: '🦖', searchQuery: 'Jurassic Park (film)', wikiTitle: 'Jurassic Park (film)' },
+        { name: 'The Thing (1982)', tag: 'John Carpenter · Outpost 31 Paranoia', emoji: '❄️', searchQuery: 'The Thing (1982 film)', wikiTitle: 'The Thing (1982 film)' },
+        { name: 'Gattaca (1997)', tag: 'Andrew Niccol · Genetic Destiny', emoji: '🧬', searchQuery: 'Gattaca', wikiTitle: 'Gattaca' },
+        { name: 'Brazil (1985)', tag: 'Terry Gilliam · Retro-Future Bureaucracy', emoji: '🏙️', searchQuery: 'Brazil (1985 film)', wikiTitle: 'Brazil (1985 film)' }
+      ]
+    },
+
     {
       id: 'kpop-girl-groups-idols',
       domainCategory: 'music_song',
@@ -1018,6 +1272,111 @@ window.VibeGenAI = (() => {
   });
 
   // POD2-901: Live Wikipedia Category-Member & "List of..." Article Graph Extractor
+
+  /**
+   * POD2-1002 (v3.0.0): Zero-Key CORS-Enabled Wikidata SPARQL Entity-Class & Property Resolver.
+   * Queries https://query.wikidata.org/sparql?format=json&query=... binding wdt:P154 (logo) and wdt:P18 (image)
+   * under CC0 1.0 Public Domain licensing ahead of generic search fallback.
+   */
+
+  /**
+   * POD2-1102 (v3.1.0): Strict 32-Seed OpenRouter BYOK JSON Validator.
+   * Ensures user-funded LLM responses return exactly 32 distinct, non-placeholder entities
+   * with explicit wikiTitle pointers before entering VibeState.
+   */
+  function validateByokTopicPayload(rawPayload, fallbackTitle) {
+    if (!rawPayload || typeof rawPayload !== 'object' || !Array.isArray(rawPayload.items)) {
+      return { valid: false, reason: 'Missing items array' };
+    }
+    const seen = new Set();
+    const cleanItems = [];
+    for (let i = 0; i < rawPayload.items.length; i++) {
+      const it = rawPayload.items[i];
+      if (!it || typeof it !== 'object') continue;
+      const name = String(it.name || '').trim().slice(0, 60);
+      if (!name || /\b(classic legend|fan favorite|item #?\d+|placeholder)\b/i.test(name)) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cleanItems.push({
+        id: 'byok_' + i + '_' + (Date.now() % 100000),
+        name,
+        tag: String(it.tag || it.subtitle || ('Seed #' + (cleanItems.length + 1))).trim().slice(0, 48),
+        emoji: String(it.emoji || '⚡').replace(/[<>&"']/g, '').slice(0, 4) || '⚡',
+        searchQuery: String(it.searchQuery || name).trim(),
+        wikiTitle: String(it.wikiTitle || it.searchQuery || name).trim()
+      });
+      if (cleanItems.length === TARGET_SEED_COUNT) break;
+    }
+    if (cleanItems.length !== TARGET_SEED_COUNT) {
+      return { valid: false, reason: 'Expected 32 unique seeds, got ' + cleanItems.length };
+    }
+    return {
+      valid: true,
+      topic: {
+        id: 'byok_' + Date.now(),
+        title: String(rawPayload.title || fallbackTitle || 'Custom AI Arena').trim().slice(0, 80),
+        subtitle: String(rawPayload.subtitle || '32 BYOK AI Contenders · 5-Round Knockout Arena').trim().slice(0, 90),
+        items: cleanItems
+      }
+    };
+  }
+
+  async function fetchWikidataSparqlEntities(promptText) {
+    const clean = String(promptText || '').trim();
+    if (!clean) return [];
+    const lower = clean.toLowerCase();
+    let classQid = 'Q35120';
+    if (lower.includes('football') || lower.includes('club') || lower.includes('fc')) classQid = 'Q476028';
+    else if (lower.includes('movie') || lower.includes('film') || lower.includes('cinema')) classQid = 'Q11424';
+    else if (lower.includes('game') || lower.includes('rpg') || lower.includes('nintendo')) classQid = 'Q7889';
+    else if (lower.includes('anime') || lower.includes('manga')) classQid = 'Q1107';
+    else if (lower.includes('song') || lower.includes('music') || lower.includes('idol') || lower.includes('pop')) classQid = 'Q7366';
+
+    const safeKeyword = clean.replace(/["\\]/g, ' ').slice(0, 48);
+    const sparql = [
+      'SELECT DISTINCT ?item ?itemLabel ?itemDescription ?logo ?image ?article WHERE {',
+      '  ?item wdt:P31/wdt:P279* wd:' + classQid + ' .',
+      '  OPTIONAL { ?item wdt:P154 ?logo . }',
+      '  OPTIONAL { ?item wdt:P18 ?image . }',
+      '  ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?wikiTitle .',
+      '  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }',
+      '} LIMIT 40'
+    ].join('\n');
+
+    const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(sparql);
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/sparql-results+json' } });
+      if (!res || !res.ok) return [];
+      const data = await res.json();
+      const bindings = (data && data.results && Array.isArray(data.results.bindings)) ? data.results.bindings : [];
+      const out = [];
+      const seen = new Set();
+      for (const b of bindings) {
+        const name = b.itemLabel && b.itemLabel.value ? String(b.itemLabel.value).trim() : '';
+        if (!name || /^Q\d+$/i.test(name)) continue;
+        const key = name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const desc = (b.itemDescription && b.itemDescription.value) ? String(b.itemDescription.value).slice(0, 48) : safeKeyword;
+        const rawImg = (b.logo && b.logo.value) || (b.image && b.image.value) || '';
+        out.push({
+          id: 'wd_sparql_' + out.length,
+          name: name.slice(0, 60),
+          tag: desc,
+          emoji: '⚡',
+          searchQuery: name,
+          wikiTitle: name,
+          imageUrl: rawImg.startsWith('http://') ? rawImg.replace('http://', 'https://') : rawImg
+        });
+        if (out.length >= TARGET_SEED_COUNT) break;
+      }
+      return out;
+    } catch (e) {
+      return [];
+    }
+  }
+
   async function fetchWikipediaCategoryOrListSeeds(promptText) {
     const clean = String(promptText || '').trim();
     if (!clean || typeof fetch !== 'function') return [];
@@ -1582,6 +1941,31 @@ window.VibeGenAI = (() => {
         prompt: 'Premier League Managers & Football Legends',
         mustIncludeAny: ['Sir Alex Ferguson', 'Arsène Wenger', 'Thierry Henry'],
         mustReject: ['Hakata Tonkotsu Ramen', 'BLACKPINK', 'Spirited Away (2001)']
+      },
+      {
+        prompt: 'UEFA Europa League & Global Football Clubs',
+        mustIncludeAny: ['Sevilla FC', 'Atalanta BC', 'AS Roma', 'AFC Ajax'],
+        mustReject: ['Hakata Tonkotsu Ramen', 'BLACKPINK', 'Spirited Away (2001)']
+      },
+      {
+        prompt: '2000s & 2010s Billboard Pop Anthems',
+        mustIncludeAny: ['Toxic — Britney Spears', 'Bad Romance — Lady Gaga', 'Uptown Funk — Mark Ronson ft. Bruno Mars'],
+        mustReject: ['Arsenal FC', 'Hakata Tonkotsu Ramen', 'RX-78-2 Gundam']
+      },
+      {
+        prompt: 'Iconic Cyberpunk & Sci-Fi Movies',
+        mustIncludeAny: ['Blade Runner (1982)', 'The Matrix (1999)', 'Akira (1988)', 'Dune: Part Two (2024)'],
+        mustReject: ['Arsenal FC', 'Hakata Tonkotsu Ramen', 'BLACKPINK']
+      },
+      {
+        prompt: 'Best Isekai Fantasy Anime Series',
+        mustIncludeAny: ['Re:Zero − Starting Life in Another World', 'Mushoku Tensei: Jobless Reincarnation', 'Overlord'],
+        mustReject: ['Arsenal FC', 'Hakata Tonkotsu Ramen', 'Hollow Knight']
+      },
+      {
+        prompt: 'Top Indie Roguelike & Masterpiece Games',
+        mustIncludeAny: ['Hades', 'Hollow Knight', 'Balatro', 'Slay the Spire'],
+        mustReject: ['Arsenal FC', 'Tiramisu', 'BLACKPINK']
       }
     ];
 
@@ -1625,6 +2009,8 @@ window.VibeGenAI = (() => {
     synthesizeLocalTopic,
     synthesizeCurated32Topic,
     fetchWikipediaEntitiesForPrompt,
+    validateByokTopicPayload,
+    fetchWikidataSparqlEntities,
     fetchWikipediaCategoryOrListSeeds,
     getReserveSeedForTopic,
     runMultiTopicSeedSimulation
