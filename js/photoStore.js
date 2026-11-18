@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/photoStore.js
 /**
  * File: js/photoStore.js
  * Description: Client-side IndexedDB photo vault with automatic localStorage, in-memory fallback, and topic-scoped multi-candidate seed URL array storage (POD2-201, POD2-401 & POD2-501).
@@ -10,6 +10,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Added topic-contextual cache key normalization buildContextualCacheKey(queryText, topicTitle) for POD2-501 (FD-P0-20261115-01) so polysemous seed names never collide across different arena topics.
  *   - v2.6.0 (2026-11-16 10:09 HKT): Upgraded to Common Repo v1.5.0: added pinContenderImageUrl(itemId, url) and getPinnedUrlSync(itemId) for 1-tap seed image URL pinning (POD2-601).
  *   - v2.7.0 (2026-11-16 22:36 HKT): Closed BUG-P1-20261116-02 (POD2-702 / Common Repo v1.6.0): added VALID_STORED_IMG_RE accepting both data:image/ and https:// URLs in putPhoto() and hydrateAll(), and exported pinContenderImageUrl and getPinnedUrlSync.
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Synchronized Common Repo v1.7.0 IndexedDB photo vault with v2.8.0 domain-verified image pipeline.
  */
 window.NetHustlePhotoStore = (() => {
   const DB_NAME = 'NetHustle_VibeBracket_PhotoVault_v1';

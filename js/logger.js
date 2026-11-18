@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/logger.js
 /**
  * File: js/logger.js
  * Description: Deterministic in-app diagnostic ring-buffer logger and Web Audio SFX synthesizer.
@@ -14,6 +14,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Synchronized build metadata and diagonal cross-section VS battle clash integration (POD2-503).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Synchronized diagnostic telemetry logger with VibeBracket Arena v2.6.0 (Build 20261116_1009).
  *   - v2.7.0 (2026-11-16 22:36 HKT): Synchronized diagnostic telemetry logger with VibeBracket Arena v2.7.0 (Build 20261116_2236).
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Synchronized diagnostic logger with VibeBracket Arena v2.8.0 (Build 20261117_1047).
  */
 window.AppLogger = (() => {
   const entries = [];

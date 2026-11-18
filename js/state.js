@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/state.js
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -13,6 +13,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-502 historical generic-suffix state scrubbing in load() and starter packs, and POD2-504 (FD-P0-20261115-04) exact 2-6-8-8-8 Tier Assignment (S:2, A:6, B:8, C:8, D:8) + 8-match Round-of-32 Loser-Bracket Placement Battles.
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-03 & POD2-603: added getSeedTournamentProvenance(topic, bracket, itemId) for 39-match provenance inspection and reopenPlacementOrBracketMatch() for 1-tap counterfactual re-fights.
  *   - v2.7.0 (2026-11-16 22:36 HKT): Closed BUG-P1-20261116-02 (POD2-702): updated getContenderPhoto(itemId) to check state.customPhotos[itemId] first so user-pinned https:// URLs immediately override any cached data:image/ thumbnail.
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Implemented FD-P0-20261117-03 (POD2-803 & POD2-804): added computePlayerTasteArchetype(topic, bracket) for Spotify-Wrapped-style Taste Archetype Verdict Cards and updateSeedItemName(topicId, itemId, newName) for 32-Seed Draft Board customization.
  */
 window.VibeState = (() => {
   const PHOTO_STORAGE_KEY = 'vibetrack_custom_images';
@@ -616,8 +617,260 @@ window.VibeState = (() => {
     return null;
   }
 
+
+  /**
+   * FD-P0-20261117-03 (POD2-803): Updates a contender's display name & search query
+   * from the interactive 32-Seed Roster / Draft Board and refreshes the active bracket.
+   */
+  function updateSeedItemName(topicId, itemId, newName) {
+    const topic = getAllTopics().find((t) => t.id === topicId) || getActiveTopic();
+    if (!topic || !itemId || !newName) return false;
+    const cleanName = String(newName).trim().slice(0, 56);
+    if (!cleanName) return false;
+    const item = topic.items.find((it) => it.id === itemId);
+    if (!item) return false;
+    item.name = cleanName;
+    item.searchQuery = cleanName;
+    item.wikiTitle = cleanName;
+    delete item.imageUrl;
+    delete state.customPhotos[itemId];
+    initBracket(topic);
+    save();
+    return true;
+  }
+
+  /**
+   * FD-P0-20261117-03 (POD2-804): Computes a Spotify-Wrapped-style "Your Arena Taste
+   * Archetype" Verdict Card from the player's 39-match voting history, upset rate,
+   * and C/D Redemption saves.
+   */
+  function computePlayerTasteArchetype(topic, bracket) {
+    if (!topic || !bracket) return null;
+    const seedIndexMap = {};
+    (topic.items || []).forEach((it, idx) => { seedIndexMap[it.id] = idx + 1; });
+
+    let totalDecided = 0;
+    let upsetsPicked = 0;
+    let biggestUpsetDiff = 0;
+    let biggestUpsetWinner = null;
+
+    (bracket.rounds || []).forEach((roundMatches) => {
+      (roundMatches || []).forEach((m) => {
+        if (!m || !m.winner || !m.left || !m.right) return;
+        totalDecided++;
+        const winSeed = seedIndexMap[m.winner.id] || 16;
+        const loseItem = m.winner.id === m.left.id ? m.right : m.left;
+        const loseSeed = seedIndexMap[loseItem.id] || 16;
+        const diff = winSeed - loseSeed;
+        if (diff >= 4) {
+          upsetsPicked++;
+          if (diff > biggestUpsetDiff) {
+            biggestUpsetDiff = diff;
+            biggestUpsetWinner = m.winner.name + ' (#' + winSeed + ') over ' + loseItem.name + ' (#' + loseSeed + ')';
+          }
+        }
+      });
+    });
+
+    const upsetPct = totalDecided > 0 ? Math.round((upsetsPicked / totalDecided) * 100) : 0;
+    const champSeed = (bracket.champion && seedIndexMap[bracket.champion.id]) || 1;
+
+    let archetypeTitle = '👑 Chalk Purist Taktician';
+    let archetypeVibe = 'You respect championship pedigree and dominant #1 seeds — zero gimmicks, pure powerhouse supremacy.';
+    if (upsetPct >= 35 || champSeed >= 12) {
+      archetypeTitle = '⚡ Chaos Giant-Killer';
+      archetypeVibe = 'You thrive on bracket-busting upsets and Cinderella runs, toppling heavyweights without hesitation!';
+    } else if (upsetPct >= 18 || champSeed >= 5) {
+      archetypeTitle = '🔥 Dark-Horse Whisperer';
+      archetypeVibe = 'You balance elite contenders with clutch sleeper picks that outlast overrated favorites.';
+    }
+
+    return {
+      archetypeTitle,
+      archetypeVibe,
+      upsetsPicked,
+      totalDecided,
+      upsetPct,
+      champSeed,
+      biggestUpsetWinner: biggestUpsetWinner || (bracket.champion ? bracket.champion.name + ' (Undisputed Run)' : 'Pending')
+    };
+  }
+
+  
+  // POD2-902: 1-Tap Draft Board Seed Reroll drawing from Domain-Verified Reserve Pool
+  function rerollDraftSeed(seedIndex) {
+    const topic = getActiveTopic();
+    if (!topic || !Array.isArray(topic.items)) return null;
+    const idx = Number(seedIndex);
+    if (isNaN(idx) || idx < 0 || idx >= topic.items.length) return null;
+    const currentNames = topic.items.map(it => it.name);
+    const oldItem = topic.items[idx];
+    let replacement = null;
+    if (window.VibeGenAI && typeof window.VibeGenAI.getReserveSeedForTopic === 'function') {
+      replacement = window.VibeGenAI.getReserveSeedForTopic(topic.title, currentNames, idx);
+    }
+    if (!replacement) {
+      replacement = {
+        id: 'reroll_' + Date.now() + '_' + idx,
+        name: topic.title + ' Reserve #' + (idx + 1),
+        tag: 'Rerolled Seed #' + (idx + 1),
+        emoji: '🎲',
+        searchQuery: topic.title,
+        wikiTitle: topic.title
+      };
+    }
+    // Preserve stable slot ID if bracket hasn't started voting so bracket slots stay synced
+    replacement.id = oldItem.id || replacement.id;
+    topic.items[idx] = replacement;
+    if (state.customPhotos && state.customPhotos[replacement.id]) {
+      delete state.customPhotos[replacement.id];
+    }
+    // Rebuild bracket if 0 votes cast so Round of 32 reflects the new seed immediately
+    const b = getActiveBracket();
+    if (b && (!b.history || b.history.length === 0)) {
+      state.brackets[topic.id] = createBracket(topic);
+    }
+    save();
+    return replacement;
+  }
+
+  // POD2-904: Stateless #challenge= Friend-Duel Encoder, Parser & Agreement Calculator
+  function encodeChallengeLink(challengerHandle) {
+    const topic = getActiveTopic();
+    const b = getActiveBracket();
+    if (!topic || !b) return '';
+    const arch = computePlayerTasteArchetype(topic, b);
+    const tiers = getActiveTiers() || { S: [], A: [], B: [], C: [], D: [] };
+    const champName = b.champion ? b.champion.name : (topic.items[0] ? topic.items[0].name : 'Champion');
+    const cWinners = ((b.loserPlacement && b.loserPlacement.matches) || [])
+      .filter(m => m && m.winner)
+      .map(m => m.winner.name);
+    const payload = {
+      v: '2.9.0',
+      h: (window.PackSanitizer ? window.PackSanitizer.cleanText(challengerHandle || 'Arena Challenger', 32) : String(challengerHandle || 'Arena Challenger').slice(0, 32)),
+      tid: topic.id,
+      tt: (window.PackSanitizer ? window.PackSanitizer.cleanText(topic.title, 70) : String(topic.title).slice(0, 70)),
+      ch: champName,
+      rk: cWinners[0] || (tiers.C && tiers.C[0] && tiers.C[0].name) || 'Redemption Hero',
+      ar: arch.title,
+      up: arch.upsetPct,
+      s: (tiers.S || []).slice(0, 2).map(x => x.name || String(x)),
+      a: (tiers.A || []).slice(0, 6).map(x => x.name || String(x))
+    };
+    try {
+      const json = JSON.stringify(payload);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      return '#challenge=' + encoded;
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function parseChallengeLink(rawHashOrUrl) {
+    const str = String(rawHashOrUrl || '');
+    const m = str.match(/(?:[#?&]challenge=)([A-Za-z0-9+/=%_-]+)/);
+    if (!m || !m[1]) return null;
+    try {
+      const rawB64 = decodeURIComponent(m[1]);
+      const json = decodeURIComponent(escape(atob(rawB64)));
+      const parsed = JSON.parse(json);
+      if (!parsed || typeof parsed !== 'object') return null;
+      const clean = window.PackSanitizer && typeof window.PackSanitizer.cleanText === 'function'
+        ? (txt, max) => window.PackSanitizer.cleanText(txt, max)
+        : (txt, max) => String(txt || '').replace(/[<>]/g, '').slice(0, max || 60);
+      return {
+        version: clean(parsed.v || '2.9.0', 12),
+        handle: clean(parsed.h || 'Rival Challenger', 32),
+        topicId: clean(parsed.tid || '', 40),
+        topicTitle: clean(parsed.tt || '32-Seed Showdown', 70),
+        champion: clean(parsed.ch || 'Unknown Champion', 60),
+        redemptionKing: clean(parsed.rk || 'Redemption Hero', 60),
+        archetype: clean(parsed.ar || '👑 Chalk Purist Taktician', 50),
+        upsetPct: Math.max(0, Math.min(100, Number(parsed.up) || 0)),
+        sTier: Array.isArray(parsed.s) ? parsed.s.slice(0, 2).map(x => clean(x, 60)) : [],
+        aTier: Array.isArray(parsed.a) ? parsed.a.slice(0, 6).map(x => clean(x, 60)) : []
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function computeFriendDuelComparison(challengerPayload) {
+    const topic = getActiveTopic();
+    const b = getActiveBracket();
+    const tiers = getActiveTiers() || { S: [], A: [], B: [], C: [], D: [] };
+    const myArch = computePlayerTasteArchetype(topic, b);
+    const myChamp = (b && b.champion && b.champion.name) || (tiers.S && tiers.S[0] && tiers.S[0].name) || (topic && topic.items[0] && topic.items[0].name) || 'Contender #1';
+    const rival = challengerPayload || {
+      handle: 'Rival Friend',
+      topicTitle: topic ? topic.title : 'Arena Showdown',
+      champion: (topic && topic.items[1] && topic.items[1].name) || 'Contender #2',
+      redemptionKing: (topic && topic.items[16] && topic.items[16].name) || 'Contender #17',
+      archetype: '🔥 Dark-Horse Whisperer',
+      upsetPct: 35,
+      sTier: [(topic && topic.items[1] && topic.items[1].name) || 'Seed #2', (topic && topic.items[0] && topic.items[0].name) || 'Seed #1'],
+      aTier: (topic ? topic.items.slice(2, 8).map(x => x.name) : [])
+    };
+
+    let score = 0;
+    const sameChampion = String(myChamp).toLowerCase() === String(rival.champion).toLowerCase();
+    if (sameChampion) score += 42;
+
+    const myTopSet = new Set(
+      [].concat(tiers.S || [], tiers.A || [])
+        .map(x => String((x && x.name) || x || '').toLowerCase())
+        .filter(Boolean)
+    );
+    const rivalTopList = [].concat(rival.sTier || [], rival.aTier || []);
+    let overlapCount = 0;
+    rivalTopList.forEach(name => {
+      if (myTopSet.has(String(name || '').toLowerCase())) overlapCount++;
+    });
+    const maxTop = Math.max(1, rivalTopList.length);
+    score += Math.round((overlapCount / maxTop) * 38);
+
+    const upsetGap = Math.abs((myArch.upsetPct || 0) - (rival.upsetPct || 0));
+    score += Math.max(0, 20 - Math.round(upsetGap * 0.4));
+    const agreementPct = Math.max(8, Math.min(100, score));
+
+    let badge = '💥 Arch-Rivals';
+    let verdictLine = 'Total bracket warfare — your S-Tier picks sparked maximum group-chat controversy!';
+    if (agreementPct >= 75) {
+      badge = '🔥 Vibe Twin';
+      verdictLine = 'Elite taste synchronization — you both crowned the same upper-echelon legends!';
+    } else if (agreementPct >= 48) {
+      badge = '⚔️ Friendly Rivals';
+      verdictLine = 'Respectable overlap in the Quarterfinals, but a dramatic clash at the throne!';
+    }
+
+    const biggestDisagreement = sameChampion
+      ? ('Redemption Clash: ' + rival.redemptionKing + ' vs your C-Tier picks')
+      : ('Throne Clash: Your ' + myChamp + ' vs ' + rival.handle + '\'s ' + rival.champion);
+
+    return {
+      agreementPct,
+      badge,
+      verdictLine,
+      sameChampion,
+      myChampion: myChamp,
+      rivalChampion: rival.champion,
+      myArchetype: myArch.title,
+      rivalArchetype: rival.archetype,
+      rivalHandle: rival.handle,
+      topicTitle: topic ? topic.title : rival.topicTitle,
+      biggestDisagreement
+    };
+  }
+
   return {
+    rerollDraftSeed,
+    encodeChallengeLink,
+    parseChallengeLink,
+    computeFriendDuelComparison,
+
     data: state,
+    updateSeedItemName,
+    computePlayerTasteArchetype,
     getSeedTournamentProvenance,
     flipDecisivePlacementOutcome,
     STARTER_TOPICS,

@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/poster.js
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -14,6 +14,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Updated renderTierPoster() header & tier badges to display exact 2-6-8-8-8 Tier System counts and C/D Placement Battle status (POD2-504).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented POD2-604: added exportDualSlidePack (Co-Star Hero Fusion + 2-6-8-8-8 Tier Verdict) and exportDiagonalClashVideo (3s 30fps .webm animated clash clip).
  *   - v2.7.0 (2026-11-16 22:36 HKT): Closed BUG-P1-20261116-01 (POD2-701): added and exported exportDualSlidePack() and exportDiagonalClashVideo() on window.VibePoster.
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Synchronized Dual-Slide Social Pack, 3s Clash Video exporter, and 4K Poster Studio with v2.8.0.
  */
 window.VibePoster = (() => {
   const THEMES = {
@@ -636,7 +637,131 @@ window.VibePoster = (() => {
     return { format: 'png', url: pngUrl };
   }
 
+  
+  // POD2-904: Export Split-Screen Friend-Duel Verdict Poster (1080x1350 or 1080x1920)
+  function exportFriendDuelPoster(duelData, format) {
+    const d = duelData || (window.VibeState && typeof window.VibeState.computeFriendDuelComparison === 'function'
+      ? window.VibeState.computeFriendDuelComparison()
+      : {
+          agreementPct: 68,
+          badge: '⚔️ Friendly Rivals',
+          verdictLine: 'High-voltage bracket duel!',
+          myChampion: 'Seed #1',
+          rivalChampion: 'Seed #2',
+          myArchetype: '⚡ Chaos Giant-Killer',
+          rivalArchetype: '👑 Chalk Purist Taktician',
+          rivalHandle: 'Rival Challenger',
+          topicTitle: '32-Seed Showdown',
+          biggestDisagreement: 'Throne Clash at the Grand Final'
+        });
+    const isStory = format === 'story';
+    const w = 1080;
+    const h = isStory ? 1920 : 1350;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d');
+    if (!ctx) return '';
+
+    // Background split gradient
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#060913');
+    bg.addColorStop(0.5, '#1e1b4b');
+    bg.addColorStop(1, '#0f172a');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // Diagonal VS slash across center
+    ctx.save();
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.56, 260);
+    ctx.lineTo(w * 0.44, h - 260);
+    ctx.stroke();
+    ctx.restore();
+
+    // Header badge
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '800 28px "Plus Jakarta Sans", Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('VIBEBRACKET ARENA · #CHALLENGE FRIEND DUEL VERDICT', w / 2, 90);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '900 48px "Plus Jakarta Sans", Inter, sans-serif';
+    ctx.fillText(String(d.topicTitle || '32-Seed Arena').slice(0, 38), w / 2, 155);
+
+    // Agreement Pill
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+    ctx.fillRect(w / 2 - 260, 190, 520, 74);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(w / 2 - 260, 190, 520, 74);
+    ctx.fillStyle = '#fde047';
+    ctx.font = '900 34px "Plus Jakarta Sans", Inter, sans-serif';
+    ctx.fillText(d.badge + ' · ' + d.agreementPct + '% TASTE MATCH', w / 2, 238);
+
+    // Left Card (You)
+    const cardTop = 320;
+    const cardH = isStory ? 640 : 480;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.fillRect(60, cardTop, 430, cardH);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.strokeRect(60, cardTop, 430, cardH);
+
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = '800 26px Inter, sans-serif';
+    ctx.fillText('YOUR CROWNED CHAMPION', 275, cardTop + 65);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 36px "Plus Jakarta Sans", Inter, sans-serif';
+    ctx.fillText(String(d.myChampion || '').slice(0, 22), 275, cardTop + 150);
+    ctx.fillStyle = '#c084fc';
+    ctx.font = '700 24px Inter, sans-serif';
+    ctx.fillText(String(d.myArchetype || ''), 275, cardTop + 230);
+
+    // Right Card (Rival)
+    ctx.fillStyle = 'rgba(30, 27, 75, 0.88)';
+    ctx.fillRect(590, cardTop, 430, cardH);
+    ctx.strokeStyle = '#f43f5e';
+    ctx.strokeRect(590, cardTop, 430, cardH);
+
+    ctx.fillStyle = '#fda4af';
+    ctx.font = '800 26px Inter, sans-serif';
+    ctx.fillText(String(d.rivalHandle || 'RIVAL').toUpperCase() + '\'S CHAMPION', 805, cardTop + 65);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 36px "Plus Jakarta Sans", Inter, sans-serif';
+    ctx.fillText(String(d.rivalChampion || '').slice(0, 22), 805, cardTop + 150);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '700 24px Inter, sans-serif';
+    ctx.fillText(String(d.rivalArchetype || ''), 805, cardTop + 230);
+
+    // Footer summary
+    const footY = cardTop + cardH + 90;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 28px Inter, sans-serif';
+    ctx.fillText(String(d.biggestDisagreement || '').slice(0, 56), w / 2, footY);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 24px Inter, sans-serif';
+    ctx.fillText(String(d.verdictLine || '').slice(0, 68), w / 2, footY + 50);
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '800 22px Inter, sans-serif';
+    ctx.fillText('VibeBracket Arena v2.9.0 · Powered by NetHustle', w / 2, h - 55);
+
+    const dataUrl = c.toDataURL('image/png');
+    try {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'VibeBracket_Friend_Duel_Verdict_' + (isStory ? '1080x1920' : '1080x1350') + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (_) {}
+    return dataUrl;
+  }
+
   return {
+    exportFriendDuelPoster,
+
     ASPECTS,
     PRESETS,
     drawHeroSceneFusion,

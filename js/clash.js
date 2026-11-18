@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/clash.js
 /**
  * File: js/clash.js
  * Description: Client-side contender photo crop/compression (<150KB) and animated Versus Clash transition controller.
@@ -12,6 +12,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Synchronized build metadata and diagonal cross-section VS battle clash integration (POD2-503).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Synchronized WebAudio SFX, drag-and-drop contender photo compression, and diagonal clash animation with v2.6.0.
  *   - v2.7.0 (2026-11-16 22:36 HKT): Synchronized WebAudio SFX, drag-and-drop contender photo compression, and diagonal clash animation with v2.7.0.
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Synchronized WebAudio SFX and diagonal clash transitions with v2.8.0 Upset Alert banners.
  */
 window.VibeClash = (() => {
   /**

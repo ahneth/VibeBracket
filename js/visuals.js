@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/visuals.js
 /**
  * File: js/visuals.js
  * Description: Contextual <Seed Name> <Arena Topic> 3-Provider Real-Time Seed Image Resolver (Google Image Custom Search + Wikipedia PageImages/Wikimedia Commons + Openverse CC0/CC-BY REST API), 1-Tap Seed Photo Cycler, CORS-safe Canvas DataURL converter, procedural SVG fallback banner generator, and HTML5 Canvas particle/confetti & diagonal VS clash shockwave engine.
@@ -12,6 +12,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Implemented POD2-501 (FD-P0-20261115-01) buildContextualImageQueries(item, topicTitle) ("<Seed Name> <Cleaned Arena Topic>" -> "<Seed Name> <Item Tag>" -> "<Seed Name>") across all 3 providers with topic-scoped cache keys, and upgraded triggerClashSparks() with diagonal cross-section VS lightning shockwaves (POD2-503).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Implemented FD-P0-20261116-02 & POD2-601: 5-stage live image cascade (Exact Title Redirects, Contextual Search, Lead Image File Info, Wikimedia Commons gsrlimit=10, Openverse CC), scoreImageCandidate relevance & SVG/flag filter, and >=120px dimension guard.
  *   - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-703: added fetchWikidataOfficialVisual() resolving Wikidata P154 (official logo/crest) and P18 (main image) via Commons Special:FilePath?width=500 at Stage 0 of fetchRealtimeSeedImage().
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Implemented FD-P0-20261117-02 (POD2-802): added verifyEntitySummaryDomain(), canonical wikiTitle resolution, Wikipedia REST v1 page/summary + Q-ID -> Wikidata P154/P18 verification, and raised scoreImageCandidate acceptance threshold to >= 45.
  */
 window.VibeVisuals = (() => {
   const PALETTES = [
@@ -279,27 +280,164 @@ window.VibeVisuals = (() => {
    * official logo/crest (P154) and main image (P18), converting the filename to a
    * 500px Wikimedia Commons Special:FilePath HTTPS URL.
    */
-  async function fetchWikidataOfficialVisual(cleanEntityName) {
-    if (!cleanEntityName || typeof fetch === 'undefined') return [];
+  /**
+   * FD-P0-20261117-02 (POD2-802): Infers expected domain keywords and conflicting
+   * entity-type keywords (e.g., rejecting a city/municipality/surname page when
+   * looking up a football club, film, video game, or dish) from the arena topic title.
+   */
+  function inferTopicDomainRules(topicTitle) {
+    const lower = String(topicTitle || '').toLowerCase();
+    if (/football|soccer|premier league|champions league|la liga|serie a|bundesliga|club|fc/.test(lower) && !/player|striker|midfielder/.test(lower)) {
+      return {
+        domainHint: 'football club',
+        expectedTokens: ['football', 'soccer', 'club', 'f.c.', 'c.f.', 'league', 'stadium', 'team', 'sports'],
+        conflictTokens: ['city in', 'town in', 'municipality', 'borough of', 'county', 'given name', 'surname', 'disambiguation', 'warship', 'naval']
+      };
+    }
+    if (/ramen|noodle|food|dish|sushi|street food|michelin|dim sum|tea|drink|cafe|cha chaan teng/.test(lower)) {
+      return {
+        domainHint: 'food',
+        expectedTokens: ['food', 'dish', 'noodle', 'ramen', 'soup', 'cuisine', 'beverage', 'tea', 'dessert', 'snack', 'pork', 'broth', 'dumpling', 'pastry', 'bread'],
+        conflictTokens: ['politician', 'footballer', 'album by', 'song by', 'municipality', 'disambiguation']
+      };
+    }
+    if (/ghibli|movie|film|cinema|director|imax/.test(lower)) {
+      return {
+        domainHint: 'film',
+        expectedTokens: ['film', 'movie', 'animated', 'directed by', 'studio ghibli', 'miyazaki', 'cinema', 'short'],
+        conflictTokens: ['football club', 'municipality', 'given name', 'disambiguation']
+      };
+    }
+    if (/f1|formula 1|driver|motorsport|grand prix/.test(lower)) {
+      return {
+        domainHint: 'racing driver',
+        expectedTokens: ['driver', 'racing', 'formula one', 'formula 1', 'motorsport', 'champion'],
+        conflictTokens: ['municipality', 'film', 'disambiguation']
+      };
+    }
+    if (/switch|rpg|jrpg|game|gaming|nintendo|playstation/.test(lower)) {
+      return {
+        domainHint: 'video game',
+        expectedTokens: ['video game', 'role-playing', 'game', 'nintendo', 'developed by', 'square enix', 'atlus', 'monolith'],
+        conflictTokens: ['municipality', 'politician', 'disambiguation']
+      };
+    }
+    if (/taylor swift|song|music|pop|k-pop|kpop|artist|idol|band/.test(lower)) {
+      return {
+        domainHint: 'music',
+        expectedTokens: ['song', 'single', 'album', 'singer', 'musician', 'group', 'band', 'taylor swift', 'track', 'pop'],
+        conflictTokens: ['municipality', 'football club', 'disambiguation']
+      };
+    }
+    return {
+      domainHint: '',
+      expectedTokens: [],
+      conflictTokens: ['wikimedia disambiguation page', 'disambiguation']
+    };
+  }
+
+  /**
+   * FD-P0-20261117-02 (POD2-802): Verifies that a Wikipedia REST summary or Wikidata
+   * entity description matches the expected domain of the arena topic and is NOT a
+   * disambiguation page or a conflicting homonym (such as a city/surname instead of a club/film).
+   */
+  function verifyEntitySummaryDomain(descriptionOrExtract, topicTitle, item) {
+    const text = String(descriptionOrExtract || '').toLowerCase();
+    if (!text) return true;
+    if (text.includes('disambiguation') || text.includes('may refer to:')) return false;
+
+    const rules = inferTopicDomainRules(topicTitle);
+    for (const bad of rules.conflictTokens) {
+      if (text.includes(bad)) {
+        // Only reject if none of the expected domain tokens appear in the description
+        const hasExpected = rules.expectedTokens.some((et) => text.includes(et));
+        if (!hasExpected) return false;
+      }
+    }
+    if (rules.expectedTokens.length > 0) {
+      return rules.expectedTokens.some((et) => text.includes(et));
+    }
+    return true;
+  }
+
+  /**
+   * FD-P0-20261117-02 (POD2-802): Resolves canonical Wikipedia REST v1 page summary
+   * (https://en.wikipedia.org/api/rest_v1/page/summary/<wikiTitle>), verifies its
+   * domain description via verifyEntitySummaryDomain(), and returns both the verified
+   * lead image and the exact Wikidata Q-ID (wikibase_item).
+   */
+  async function fetchVerifiedWikipediaSummaryVisual(item, topicTitle) {
+    if (!item || typeof fetch === 'undefined') return null;
+    const rawWikiTitle = String(item.wikiTitle || item.searchQuery || item.name || '')
+      .replace(/\s*\([^)]*\)\s*$/, (m) => (/film|game|song|driver/i.test(m) ? m : ''))
+      .trim();
+    if (!rawWikiTitle) return null;
+
+    const rules = inferTopicDomainRules(topicTitle);
+    const titlesToTry = [rawWikiTitle];
+    if (rules.domainHint === 'football club' && !/f\.c\.|c\.f\.|club/i.test(rawWikiTitle)) {
+      titlesToTry.unshift(rawWikiTitle + ' F.C.');
+    }
+
+    for (const t of titlesToTry) {
+      try {
+        const sumUrl = 'https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t.replace(/ /g, '_'));
+        const res = await fetch(sumUrl);
+        if (!res || !res.ok) continue;
+        const data = await res.json();
+        if (!data || data.type === 'disambiguation') continue;
+        const combinedDesc = (data.description || '') + ' ' + (data.extract || '');
+        if (!verifyEntitySummaryDomain(combinedDesc, topicTitle, item)) continue;
+        const imgUrl = data?.thumbnail?.source || data?.originalimage?.source || null;
+        return {
+          imageUrl: imgUrl,
+          title: data.title || t,
+          wikibaseItem: data.wikibase_item || null,
+          description: data.description || ''
+        };
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  async function fetchWikidataOfficialVisual(cleanEntityName, topicTitle = '', item = null, knownQid = null) {
+    if ((!cleanEntityName && !knownQid) || typeof fetch === 'undefined') return [];
     const found = [];
     try {
-      const searchUrl = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search='
-        + encodeURIComponent(cleanEntityName)
-        + '&language=en&limit=2&format=json&origin=*';
-      const sRes = await fetch(searchUrl);
-      if (!sRes || !sRes.ok) return found;
-      const sData = await sRes.json();
-      const hits = Array.isArray(sData?.search) ? sData.search : [];
-      for (const hit of hits) {
-        if (!hit || !hit.id) continue;
+      const qidsToInspect = [];
+      if (knownQid) qidsToInspect.push(knownQid);
+
+      if (qidsToInspect.length === 0 && cleanEntityName) {
+        const rules = inferTopicDomainRules(topicTitle);
+        const searchQueries = rules.domainHint
+          ? [cleanEntityName + ' ' + rules.domainHint, cleanEntityName]
+          : [cleanEntityName];
+        for (const sq of searchQueries) {
+          if (qidsToInspect.length > 0) break;
+          const searchUrl = 'https://www.wikidata.org/w/api.php?action=wbsearchentities&search='
+            + encodeURIComponent(sq)
+            + '&language=en&limit=4&format=json&origin=*';
+          const sRes = await fetch(searchUrl);
+          if (!sRes || !sRes.ok) continue;
+          const sData = await sRes.json();
+          const hits = Array.isArray(sData?.search) ? sData.search : [];
+          for (const hit of hits) {
+            if (!hit || !hit.id) continue;
+            if (verifyEntitySummaryDomain(hit.description || '', topicTitle, item)) {
+              qidsToInspect.push(hit.id);
+            }
+          }
+        }
+      }
+
+      for (const qid of qidsToInspect.slice(0, 2)) {
         const claimsUrl = 'https://www.wikidata.org/w/api.php?action=wbgetclaims&entity='
-          + encodeURIComponent(hit.id)
+          + encodeURIComponent(qid)
           + '&format=json&origin=*';
         const cRes = await fetch(claimsUrl);
         if (!cRes || !cRes.ok) continue;
         const cData = await cRes.json();
         const claims = cData?.claims || {};
-        // P154 = official logo/crest image; P18 = main portrait/image
         for (const prop of ['P154', 'P18']) {
           const propArr = Array.isArray(claims[prop]) ? claims[prop] : [];
           for (const stmt of propArr) {
@@ -310,9 +448,9 @@ window.VibeVisuals = (() => {
                 + '?width=500';
               found.push({
                 url: fileUrl,
-                title: fileVal.trim(),
-                source: prop === 'P154' ? 'Wikidata Official Crest (P154)' : 'Wikidata Main Image (P18)',
-                bonus: prop === 'P154' ? 45 : 35
+                title: (cleanEntityName || '') + ' ' + fileVal.trim(),
+                source: prop === 'P154' ? 'Wikidata Official Crest (P154)' : 'Wikidata Verified Image (P18)',
+                bonus: prop === 'P154' ? 55 : 45
               });
             }
           }
@@ -364,7 +502,8 @@ window.VibeVisuals = (() => {
         const cleanUrl = url.trim();
         if (seenUrls.has(cleanUrl)) return;
         const sc = scoreImageCandidate(cleanUrl, titleMeta, item, topicTitle) + bonus;
-        if (sc > 0) {
+        // FD-P0-20261117-02 (POD2-802): Strict relevance floor >= 45 prevents unrelated photos
+        if (sc >= 45) {
           seenUrls.add(cleanUrl);
           scoredPool.push({ url: cleanUrl, source: sourceLabel, score: sc });
         }
@@ -388,9 +527,17 @@ window.VibeVisuals = (() => {
         } catch (_) {}
       }
 
-      // Stage 0B (POD2-703): Wikidata Official Crest (P154) & Main Image (P18) Lookup
-      if (cleanEntityName) {
-        const wdVisuals = await fetchWikidataOfficialVisual(cleanEntityName);
+      // Stage 0A & 0B (FD-P0-20261117-02 / POD2-802): Domain-Verified Wikipedia REST Summary + Exact Q-ID Wikidata P154/P18 Lookup
+      let verifiedQid = null;
+      const summaryVisual = await fetchVerifiedWikipediaSummaryVisual(item, topicTitle);
+      if (summaryVisual) {
+        verifiedQid = summaryVisual.wikibaseItem;
+        if (summaryVisual.imageUrl) {
+          addScoredCandidate(summaryVisual.imageUrl, summaryVisual.title + ' ' + cleanEntityName, 'Wikipedia Verified Summary', 55);
+        }
+      }
+      if (cleanEntityName || verifiedQid) {
+        const wdVisuals = await fetchWikidataOfficialVisual(cleanEntityName, topicTitle, item, verifiedQid);
         wdVisuals.forEach((wv) => {
           addScoredCandidate(wv.url, wv.title, wv.source, wv.bonus);
         });
@@ -689,10 +836,53 @@ window.VibeVisuals = (() => {
     runParticleBurst(28, 22, ['#fbbf24', '#38bdf8', '#f43f5e'], 0.44, true);
   }
 
+  
+  // POD2-902: Bounded Parallel Draft Board Visual Prefetcher (concurrency = 4)
+  async function prefetchDraftBoardVisuals(topic, concurrency, onProgress) {
+    if (!topic || !Array.isArray(topic.items)) return { resolved: 0, total: 0 };
+    const limit = Math.max(1, Math.min(8, Number(concurrency) || 4));
+    const items = topic.items.slice();
+    const total = items.length;
+    let resolved = 0;
+    let cursor = 0;
+
+    async function worker() {
+      while (cursor < items.length) {
+        const idx = cursor++;
+        const item = items[idx];
+        if (!item) continue;
+        try {
+          if (!item.imageUrl) {
+            const url = await fetchRealtimeSeedImage(item, topic.title);
+            if (url) item.imageUrl = url;
+          }
+        } catch (err) {
+          // Ignore individual seed network failures in offline/sandbox mode
+        }
+        resolved++;
+        if (typeof onProgress === 'function') {
+          try { onProgress(resolved, total, item); } catch (_) {}
+        }
+      }
+    }
+
+    const workers = [];
+    for (let w = 0; w < Math.min(limit, items.length); w++) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+    return { resolved, total };
+  }
+
   return {
+    prefetchDraftBoardVisuals,
+
     isSafeImageUrl,
     scoreImageCandidate,
     verifyImageMinDimensions,
+    inferTopicDomainRules,
+    verifyEntitySummaryDomain,
+    fetchVerifiedWikipediaSummaryVisual,
     fetchWikidataOfficialVisual,
     buildContextualImageQueries,
     getProceduralSvgBannerUrl,

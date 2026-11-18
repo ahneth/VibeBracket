@@ -1,4 +1,4 @@
-// Version: 2.7.0 | Last Modified: 2026-11-16 22:36 HKT
+// Version: 2.9.0 | Last Modified: 2026-11-17 22:58 HKT | Module: js/app.js
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -14,6 +14,7 @@
  *   - v2.5.0 (2026-11-15 22:14 HKT): Wired contextual <Seed Name> <Arena Topic> photo fetching & cycling (POD2-501), removed remaining 'Classics' prompt hint (POD2-502), wired overlapping diagonal VS battle stage shockwaves (POD2-503), and wired the 8-match Round-of-32 Loser-Bracket Placement Battles & exact 2-6-8-8-8 Tier List (POD2-504).
  *   - v2.6.0 (2026-11-16 10:09 HKT): Wired FD-P0-20261116-01..04 & POD2-601..605: 1-tap Pin Image URL (#btnLeftPinUrl / #btnRightPinUrl), 3D diagonal battle card tilt, Vibe Streak HUD (#vibeStreakBadge), Battle of Losers redemption banner, 39-Match Tier Provenance Inspector (#tierProvenanceBar / #btnRefightPlacementMatch), and Dual-Slide / 3s Clash Video exporters.
  *   - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-704: wired #photoProgressPill live completion percentage and #btnRetryMissingPhotos 1-tap retry for uncached seeds.
+ *   - v2.8.0 (2026-11-17 10:47 HKT): Implemented FD-P0-20261117-03 (POD2-803 & POD2-804): wired 32-Seed Interactive Draft Board (#draftBoardGrid), mobile touch-swipe voting, live Upset Alert / Cinderella Run callouts (#upsetAlertBanner), seed rank pills (#leftSeedPill / #rightSeedPill), and Spotify-Wrapped Taste Archetype Verdict card (#tasteArchetypeCard).
  */
 (function () {
   'use strict';
@@ -237,6 +238,19 @@
         }
       }
 
+      // POD2-804: Render Spotify-Wrapped-Style Taste Archetype Verdict Card
+      if (window.VibeState.computePlayerTasteArchetype) {
+        const arch = window.VibeState.computePlayerTasteArchetype(topic, b);
+        if (arch) {
+          const tTitle = document.getElementById('tasteArchetypeTitle');
+          const tDesc = document.getElementById('tasteArchetypeDesc');
+          const tStats = document.getElementById('tasteArchetypeStats');
+          if (tTitle) tTitle.textContent = arch.archetypeTitle;
+          if (tDesc) tDesc.textContent = arch.archetypeVibe;
+          if (tStats) tStats.textContent = 'Bracket Upset Rate: ' + arch.upsetPct + '% (' + arch.upsetsPicked + '/' + arch.totalDecided + ' bouts) · Champion Seed: #' + arch.champSeed + ' · Defining Call: ' + arch.biggestUpsetWinner;
+        }
+      }
+
       const podium = document.getElementById('podiumGrid');
       podium.textContent = '';
       [
@@ -262,6 +276,28 @@
 
     document.getElementById('leftEmoji').textContent = match.left.emoji || '⚡';
     bindBannerImageWithFallback(document.getElementById('leftBannerImg'), match.left, b.currentMatchIdx * 2 + 1);
+    const leftSeedRank = Math.max(1, topic.items.findIndex((it) => it.id === match.left.id) + 1);
+    const rightSeedRank = Math.max(1, topic.items.findIndex((it) => it.id === match.right.id) + 1);
+    const leftSeedEl = document.getElementById('leftSeedPill');
+    const rightSeedEl = document.getElementById('rightSeedPill');
+    if (leftSeedEl) leftSeedEl.textContent = 'SEED #' + leftSeedRank;
+    if (rightSeedEl) rightSeedEl.textContent = 'SEED #' + rightSeedRank;
+    const tapeBar = document.getElementById('taleOfTheTapeBar');
+    const tapeHype = document.getElementById('tapeHypeBadge');
+    const tapeDomain = document.getElementById('tapeDomainLabel');
+    const tapeSplit = document.getElementById('tapeWinSplitLabel');
+    if (tapeBar && match && match.left && match.right) {
+      const diff = Math.abs(leftSeedRank - rightSeedRank);
+      let hypeText = '⚖️ Coin-Flip Clash';
+      if (diff >= 12) hypeText = '👑 Goliath vs David (#' + Math.min(leftSeedRank, rightSeedRank) + ' vs #' + Math.max(leftSeedRank, rightSeedRank) + ')';
+      else if (diff <= 3) hypeText = '🌶️ Rivalry Derby (#' + leftSeedRank + ' vs #' + rightSeedRank + ')';
+      else hypeText = '⚡ High-Stakes Bout (#' + leftSeedRank + ' vs #' + rightSeedRank + ')';
+      if (tapeHype) tapeHype.textContent = hypeText;
+      if (tapeDomain) tapeDomain.textContent = (match.left.tag || topic.subtitle || topic.title || '32-Seed Showdown').slice(0, 48);
+      const rawLeftPct = Math.max(22, Math.min(78, Math.round(50 + (rightSeedRank - leftSeedRank) * 1.15)));
+      if (tapeSplit) tapeSplit.textContent = 'Community Split: ' + rawLeftPct + '% vs ' + (100 - rawLeftPct) + '%';
+    }
+
     document.getElementById('leftName').textContent = match.left.name;
     document.getElementById('leftTag').textContent = match.left.tag || 'Contender';
 
@@ -628,10 +664,23 @@
     const winner = side === 'left' ? match.left : match.right;
     const loser = side === 'left' ? match.right : match.left;
 
+    const prevRoundIdx = b.currentRoundIdx;
     window.VibeState.recordMatchVote(topic.id, b.currentRoundIdx, b.currentMatchIdx, side);
     b.history.push({ roundIdx: b.currentRoundIdx, matchIdx: b.currentMatchIdx, side });
     match.winner = winner;
     window.AppLogger.info('Advanced "' + winner.name + '" over "' + loser.name + '"');
+    const winRank = Math.max(1, topic.items.findIndex((it) => it.id === winner.id) + 1);
+    const loseRank = Math.max(1, topic.items.findIndex((it) => it.id === loser.id) + 1);
+    const upsetBanner = document.getElementById('upsetAlertBanner');
+    const upsetText = document.getElementById('upsetAlertText');
+    if (upsetBanner && upsetText) {
+      if (winRank - loseRank >= 4) {
+        upsetBanner.style.display = 'flex';
+        upsetText.textContent = (winRank >= 16 ? '🔥 CINDERELLA RUN! ' : '🚨 UPSET ALERT! ') + 'Seed #' + winRank + ' ' + winner.name + ' knocked out Seed #' + loseRank + ' ' + loser.name + '!';
+      } else {
+        upsetBanner.style.display = 'none';
+      }
+    }
 
     if (round.length === 2) {
       b.semifinalists.push(loser);
@@ -1711,6 +1760,159 @@
         updateSeedImageStatusText();
       }
     });
+  }
+
+
+  // FD-P0-20261117-03 (POD2-803): Interactive 32-Seed Roster / Draft Board Preview & Editor
+  function renderDraftBoard() {
+    const grid = document.getElementById('draftBoardGrid');
+    const wrap = document.getElementById('draftBoardWrap');
+    if (!grid || !wrap || wrap.style.display === 'none') return;
+    const topic = window.VibeState.getActiveTopic();
+    grid.textContent = '';
+    topic.items.forEach((item, idx) => {
+      const card = createSafeEl('div', null, 'draft-seed-card');
+      const img = createSafeEl('img', null, 'draft-seed-thumb');
+      img.alt = item.name;
+      bindBannerImageWithFallback(img, item, idx + 1);
+      card.appendChild(img);
+      card.appendChild(createSafeEl('div', '#' + (idx + 1) + ' · ' + item.name, 'draft-seed-title'));
+      const actRow = createSafeEl('div', null, 'draft-seed-actions');
+      const rerollBtn = document.createElement('button');
+      rerollBtn.type = 'button';
+      rerollBtn.className = 'btn btn-sm';
+      rerollBtn.textContent = '🎲 Reroll';
+      rerollBtn.title = 'Swap this contender with a domain-verified reserve seed';
+      rerollBtn.addEventListener('click', () => {
+        if (window.VibeState && typeof window.VibeState.rerollDraftSeed === 'function') {
+          const rep = window.VibeState.rerollDraftSeed(idx);
+          if (rep) {
+            if (window.VibeVisuals && typeof window.VibeVisuals.fetchRealtimeSeedImage === 'function') {
+              window.VibeVisuals.fetchRealtimeSeedImage(rep, topic.title, { forceRefresh: true }).then(() => {
+                renderDraftBoard();
+                renderArena();
+              });
+            }
+            renderDraftBoard();
+            renderArena();
+            showToast('🎲 Rerolled Seed #' + (idx + 1) + ' -> ' + rep.name);
+          }
+        }
+      });
+
+      const editBtn = createSafeEl('button', '✏️ Edit Seed', 'btn btn-sm');
+      editBtn.type = 'button';
+      editBtn.addEventListener('click', () => {
+        document.getElementById('modalTitle').textContent = '✏️ Customize Seed #' + (idx + 1) + ' — ' + item.name;
+        const body = document.getElementById('modalBody');
+        body.textContent = '';
+        const nameInput = createSafeEl('input', null, 'input');
+        nameInput.type = 'text';
+        nameInput.value = item.name;
+        nameInput.style.marginBottom = '0.65rem';
+        body.appendChild(nameInput);
+        const saveBtn = createSafeEl('button', 'Save & Resolve Live Photo', 'btn btn-primary');
+        saveBtn.type = 'button';
+        saveBtn.addEventListener('click', async () => {
+          const nextName = (nameInput.value || '').trim();
+          if (!nextName) return;
+          window.VibeState.updateSeedItemName(topic.id, item.id, nextName);
+          document.getElementById('modalBackdrop').classList.remove('open');
+          renderAll();
+          renderDraftBoard();
+          showToast('Updated Seed #' + (idx + 1) + ' to "' + nextName + '"!');
+          if (window.VibeVisuals && window.VibeVisuals.fetchRealtimeSeedImage) {
+            await window.VibeVisuals.fetchRealtimeSeedImage(item, topic.title, { forceRefresh: true });
+            updateSeedImageStatusText();
+            renderArena();
+            renderDraftBoard();
+          }
+        });
+        body.appendChild(saveBtn);
+        document.getElementById('modalBackdrop').classList.add('open');
+      });
+      actRow.appendChild(rerollBtn);
+      actRow.appendChild(editBtn);
+      card.appendChild(actRow);
+      grid.appendChild(card);
+    });
+    const statusEl = document.getElementById('draftBoardPhotoStatus');
+    if (statusEl && topic && Array.isArray(topic.items)) {
+      let readyCount = 0;
+      topic.items.forEach(it => {
+        const p = (window.VibeState && window.VibeState.getContenderPhoto(it.id)) || it.imageUrl;
+        if (p) readyCount++;
+      });
+      statusEl.textContent = readyCount + ' / ' + topic.items.length + ' Verified Visuals Ready';
+    }
+  }
+
+  const btnToggleDraftBoard = document.getElementById('btnToggleDraftBoard');
+    const btnPrefetchDraftBoard = document.getElementById('btnPrefetchDraftBoard');
+    if (btnPrefetchDraftBoard) {
+      btnPrefetchDraftBoard.addEventListener('click', async () => {
+        const topic = window.VibeState.getActiveTopic();
+        const statusEl = document.getElementById('draftBoardPhotoStatus');
+        if (!topic || !window.VibeVisuals || typeof window.VibeVisuals.prefetchDraftBoardVisuals !== 'function') return;
+        btnPrefetchDraftBoard.disabled = true;
+        await window.VibeVisuals.prefetchDraftBoardVisuals(topic, 4, (done, total) => {
+          if (statusEl) statusEl.textContent = 'Prefetching: ' + done + ' / ' + total + ' Visuals...';
+        });
+        btnPrefetchDraftBoard.disabled = false;
+        renderDraftBoard();
+        renderArena();
+        showToast('⚡ 32-Seed Draft Board Visuals Prefetched!');
+      });
+    }
+    const btnExportDuelPoster = document.getElementById('btnExportDuelPoster');
+    if (btnExportDuelPoster) {
+      btnExportDuelPoster.addEventListener('click', () => {
+        if (window.VibePoster && typeof window.VibePoster.exportFriendDuelPoster === 'function') {
+          const duel = window.VibeState.computeFriendDuelComparison ? window.VibeState.computeFriendDuelComparison() : null;
+          window.VibePoster.exportFriendDuelPoster(duel, 'feed');
+          showToast('🖼️ Exported Split-Screen Friend-Duel Verdict Poster!');
+        }
+      });
+    }
+    const btnCloseDraftBoard = document.getElementById('btnCloseDraftBoard');
+  if (btnToggleDraftBoard) {
+    btnToggleDraftBoard.addEventListener('click', () => {
+      const wrap = document.getElementById('draftBoardWrap');
+      if (!wrap) return;
+      const showing = wrap.style.display !== 'none';
+      wrap.style.display = showing ? 'none' : 'block';
+      if (!showing) renderDraftBoard();
+    });
+  }
+  if (btnCloseDraftBoard) {
+    btnCloseDraftBoard.addEventListener('click', () => {
+      const wrap = document.getElementById('draftBoardWrap');
+      if (wrap) wrap.style.display = 'none';
+    });
+  }
+
+  // FD-P0-20261117-03 (POD2-804): Mobile Touch-Swipe Left/Right Voting on .matchup-grid
+  const matchupStageEl = document.getElementById('matchupStage');
+  if (matchupStageEl) {
+    let touchStartX = null;
+    let touchStartY = null;
+    matchupStageEl.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+    matchupStageEl.addEventListener('touchend', (e) => {
+      if (touchStartX === null || !e.changedTouches || !e.changedTouches.length) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      touchStartX = null;
+      touchStartY = null;
+      if (Math.abs(dx) > 68 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+        if (dx < 0) pickWinner('left');
+        else pickWinner('right');
+      }
+    }, { passive: true });
   }
 
   window.VibeState.load();
