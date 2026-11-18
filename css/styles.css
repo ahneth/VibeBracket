@@ -1,13 +1,13 @@
-/* Version: 2.9.0 | Last Modified: 2026-11-18 08:09 HKT | Module: css/styles.css */
+/* Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: css/styles.css | App: VibeBracket Arena */
 /*
   File: css/styles.css
   Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
   Change Log:
     - v1.0.0 (2026-11-13 07:26 HKT): Initial inline styles.
     - v2.0.0 (2026-11-13 17:55 HKT): Added Versus Clash keyframes, Spice Meter, Pan/Zoom Bracket Tree, and Mini-Map styles.
-    - v2.7.0 (2026-11-16 22:36 HKT): Implemented POD2-704 (UI Modernization Phase 2): Bento Command Header (.bento-command-bar), animated #photoProgressPill, and contender metadata framing.
-    - v2.8.0 (2026-11-17 10:47 HKT): Implemented FD-P0-20261117-03 (POD2-803 & POD2-804): added collapsible .studio-drawer, interactive 32-Seed Draft Board grid (.draft-board-grid), .upset-alert-banner, and Spotify-Wrapped .taste-archetype-card styles.
-    - v2.9.0 (2026-11-18 08:09 HKT): Added .tale-of-the-tape-bar, .round-transition-banner, .draft-board-photo-status, and fixed top-of-file comment closure before :root so all CSS custom properties (--text-primary: #f8fafc, --text-secondary: #cbd5e1) apply cleanly.
+    - v2.9.0 (2026-11-18 08:09 HKT): Added .tale-of-the-tape-bar, .round-transition-banner, and locked clean comment closure before :root.
+    - v3.0.0 (2026-11-18 10:28 HKT): Added .arena-commentary-ticker, .crowd-consensus-toast, and .trophy-cabinet-modal styles.
+    - v3.1.0 (2026-11-18 22:28 HKT): Added 3-Skin Arena Theme Switcher tokens (Obsidian Aurora, Cyber Arcade, Golden Championship), .viral-topic-chips, and .creator-pro-modal styles (POD2-1102..1104).
 */
 :root {
   --bg-canvas: #090d16;
@@ -1182,4 +1182,125 @@ body {
   gap: 0.65rem;
   flex-wrap: wrap;
   box-shadow: 0 10px 26px rgba(124, 58, 237, 0.25);
+}
+
+
+/* === POD2-1003 & POD2-1004 (v3.0.0): Crowd Consensus Pulse, Broadcast Commentary Ticker & Trophy Cabinet === */
+.arena-commentary-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  margin: 0 0 12px 0;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.84rem;
+}
+.crowd-consensus-toast {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  margin: 8px auto 12px auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.22), rgba(192, 132, 252, 0.22));
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: var(--text-primary, #f8fafc);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.trophy-cabinet-modal {
+  display: none;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(251, 191, 36, 0.38);
+  color: var(--text-primary, #f8fafc);
+}
+.trophy-cabinet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.trophy-cabinet-card {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: var(--text-primary, #f8fafc);
+}
+@media (prefers-reduced-motion: reduce) {
+  .crowd-consensus-toast,
+  .arena-commentary-ticker {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+
+/* === POD2-1103 & POD2-1104 (v3.1.0): 3-Skin Arena Theme Switcher & Transparent Creator Pro 4K Modal === */
+html[data-arena-skin="cyber"] {
+  --bg-canvas: #06081a;
+  --bg-surface: rgba(14, 18, 46, 0.90);
+  --bg-elevated: #171e46;
+  --accent-cyan: #22d3ee;
+  --accent-violet: #e879f9;
+  --border-focus: #22d3ee;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+}
+html[data-arena-skin="gold"] {
+  --bg-canvas: #120d05;
+  --bg-surface: rgba(28, 21, 10, 0.92);
+  --bg-elevated: #291e0d;
+  --accent-cyan: #fbbf24;
+  --accent-violet: #f59e0b;
+  --border-focus: #fbbf24;
+  --text-primary: #fffbeb;
+  --text-secondary: #fde68a;
+}
+.viral-topic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.viral-topic-chip {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--text-primary, #f8fafc);
+  cursor: pointer;
+}
+.creator-pro-modal {
+  display: none;
+  margin: 14px 0;
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  color: var(--text-primary, #f8fafc);
+}
+.creator-pro-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.creator-pro-tier-card {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.90);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: var(--text-primary, #f8fafc);
 }
