@@ -1,4 +1,4 @@
-// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/poster.js | App: VibeBracket Arena
+// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/poster.js | App: VibeBracket Arena
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -920,7 +920,91 @@ window.VibePoster = (() => {
     });
   }
 
+
+  function exportChampionshipReceipt(opts) {
+    const o = opts || {};
+    const W = 1080;
+    const H = 1920;
+    const topicTitle = String(o.topicTitle || 'VibeBracket Arena').slice(0, 44);
+    const champName = String(o.championName || 'Grand Champion').slice(0, 32);
+    const runnerName = String(o.runnerUpName || 'Finalist').slice(0, 32);
+    const upsetLabel = String(o.biggestUpset || 'No Major Upset').slice(0, 34);
+    const cinderellaLabel = String(o.cinderellaRun || champName).slice(0, 34);
+    const spicePct = Number.isFinite(Number(o.spicePct)) ? Math.round(Number(o.spicePct)) : 0;
+    const handle = String(o.handle || '@vibebracket').slice(0, 28);
+    const ts = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+    let dataUrl = '';
+    if (typeof document !== 'undefined' && document.createElement) {
+      const c = document.createElement('canvas');
+      if (c && c.getContext) {
+        c.width = W;
+        c.height = H;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#090d16';
+          ctx.fillRect(0, 0, W, H);
+          const pad = 72;
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(pad, 96, W - pad * 2, H - 192);
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 4;
+          ctx.setLineDash([12, 10]);
+          ctx.strokeRect(pad + 24, 120, W - (pad + 24) * 2, H - 240);
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#0f172a';
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 46px monospace';
+          ctx.fillText('VIBEBRACKET ARENA', W / 2, 220);
+          ctx.font = '26px monospace';
+          ctx.fillText('OFFICIAL CHAMPIONSHIP RECEIPT', W / 2, 270);
+          ctx.fillText(topicTitle.toUpperCase(), W / 2, 330);
+          ctx.fillText(ts + ' · ' + handle, W / 2, 376);
+          ctx.textAlign = 'left';
+          const lx = pad + 56;
+          const rx = W - pad - 56;
+          const rows = [
+            ['01. GRAND CHAMPION', champName],
+            ['02. RUNNER-UP', runnerName],
+            ['03. BIGGEST UPSET', upsetLabel],
+            ['04. CINDERELLA RUN', cinderellaLabel],
+            ['05. SPICE METER', spicePct + '% CHAOS'],
+            ['SUBTOTAL', '31 CLASHES DECIDED']
+          ];
+          let y = 490;
+          rows.forEach(([k, v]) => {
+            ctx.font = 'bold 28px monospace';
+            ctx.fillStyle = '#334155';
+            ctx.fillText(k, lx, y);
+            ctx.font = 'bold 34px monospace';
+            ctx.fillStyle = '#0f172a';
+            ctx.fillText(v, lx, y + 46);
+            y += 145;
+          });
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 28px monospace';
+          ctx.fillStyle = '#0f172a';
+          ctx.fillText('THANK YOU FOR DEBATING · NETHUSTLE', W / 2, H - 250);
+          ctx.font = '24px monospace';
+          ctx.fillStyle = '#475569';
+          ctx.fillText('ahneth.github.io/VibeBracket_Arena', W / 2, H - 200);
+          if (typeof c.toDataURL === 'function') {
+            dataUrl = c.toDataURL('image/png');
+          }
+        }
+      }
+    }
+    return {
+      ok: true,
+      format: 'png',
+      width: W,
+      height: H,
+      filename: 'vibebracket_championship_receipt.png',
+      dataUrl
+    };
+  }
+
   return {
+    exportChampionshipReceipt,
     exportAnimatedVerdictReel,
     exportFriendDuelPoster,
 

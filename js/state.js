@@ -1,4 +1,4 @@
-// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/state.js | App: VibeBracket Arena
+// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/state.js | App: VibeBracket Arena
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -932,7 +932,18 @@ window.VibeState = (() => {
     };
   }
 
+
+  function encodeLineupHash(topic) {
+    const t = topic || getActiveTopic();
+    if (!t || !Array.isArray(t.items)) return '';
+    const payload = { title: t.title || 'VibeBracket Lineup', items: t.items.map(i => ({ name: i.name, wikiTitle: i.wikiTitle || '' })) };
+    const json = JSON.stringify(payload);
+    const b64 = (typeof btoa === 'function') ? btoa(unescape(encodeURIComponent(json))) : '';
+    return b64 ? '#b=' + b64 : '';
+  }
+
   return {
+    encodeLineupHash,
     getTrophyCabinet,
     recordChampionToCabinet,
     rerollDraftSeed,

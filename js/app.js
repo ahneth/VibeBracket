@@ -1,4 +1,4 @@
-// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/app.js | App: VibeBracket Arena
+// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/app.js | App: VibeBracket Arena
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -1874,7 +1874,9 @@
         const p = (window.VibeState && window.VibeState.getContenderPhoto(it.id)) || it.imageUrl;
         if (p) readyCount++;
       });
-      statusEl.textContent = readyCount + ' / ' + topic.items.length + ' Verified Visuals Ready';
+      statusEl.textContent = readyCount + ' / ' + topic.items.length + ' Verified Photos';
+      statusEl.classList.toggle('photo-health-ok', readyCount === topic.items.length);
+      statusEl.classList.toggle('photo-health-warn', readyCount < topic.items.length);
     }
   }
 
@@ -2073,4 +2075,78 @@
     refreshPosterCanvas();
   });
   window.AppLogger.info('VibeBracket Arena v' + window.VibeVersion.VERSION + ' (' + window.VibeVersion.BUILD_ID + ') ready.');
+
+  // === v3.2.0: POD2-1202 Share 32-Seed Lineup, POD2-1203 Championship Receipt, POD2-1204 Rivalry Roast ===
+  (function initV320Hooks() {
+    const btnShareLineup = document.getElementById('btnShareDraftLineup');
+    if (btnShareLineup) {
+      btnShareLineup.addEventListener('click', () => {
+        const topic = window.VibeState && window.VibeState.getActiveTopic ? window.VibeState.getActiveTopic() : null;
+        if (!topic) return;
+        const hashStr = (window.VibeState && typeof window.VibeState.encodeLineupHash === 'function')
+          ? window.VibeState.encodeLineupHash(topic)
+          : '';
+        const url = window.location.href.split('#')[0] + (hashStr ? hashStr : '');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).catch(() => {});
+        }
+        if (typeof showToast === 'function') showToast('🔗 32-Seed Lineup Link Copied!');
+      });
+    }
+
+    const btnReceipt = document.getElementById('btnExportReceipt');
+    if (btnReceipt) {
+      btnReceipt.addEventListener('click', () => {
+        if (!window.VibePoster || typeof window.VibePoster.exportChampionshipReceipt !== 'function') return;
+        const topic = window.VibeState && window.VibeState.getActiveTopic ? window.VibeState.getActiveTopic() : null;
+        const champEl = document.getElementById('championName');
+        const statsEl = document.getElementById('tasteArchetypeStats');
+        const res = window.VibePoster.exportChampionshipReceipt({
+          topicTitle: topic ? topic.title : 'VibeBracket Arena',
+          championName: champEl ? champEl.textContent.trim() : 'Grand Champion',
+          runnerUpName: 'Bracket Finalist',
+          biggestUpset: statsEl ? statsEl.textContent.trim() : '31 Clashes Decided',
+          spicePct: 35
+        });
+        if (res && res.dataUrl) {
+          const a = document.createElement('a');
+          a.href = res.dataUrl;
+          a.download = res.filename || 'vibebracket_championship_receipt.png';
+          a.click();
+        }
+        if (typeof showToast === 'function') showToast('🧾 Championship Receipt Exported (1080×1920)!');
+      });
+    }
+
+    let roastIdx = 0;
+    function getRoastLines() {
+      const champEl = document.getElementById('championName');
+      const champ = (champEl && champEl.textContent.trim()) || 'this champion';
+      return [
+        '"' + champ + ' cleared 31 clashes with zero mercy — argue with the bracket, not me."',
+        '"If your favorite got bounced before the Final 4, blame the 32-seed gauntlet."',
+        '"Certified spicy bracket: ' + champ + ' survived every upset alert on the board."'
+      ];
+    }
+    const btnCycleRoast = document.getElementById('btnCycleRoastLine');
+    const roastQuoteEl = document.getElementById('rivalryRoastQuote');
+    if (btnCycleRoast && roastQuoteEl) {
+      btnCycleRoast.addEventListener('click', () => {
+        const lines = getRoastLines();
+        roastIdx = (roastIdx + 1) % lines.length;
+        roastQuoteEl.textContent = lines[roastIdx];
+      });
+    }
+    const btnCopyRoast = document.getElementById('btnCopyRoastCard');
+    if (btnCopyRoast && roastQuoteEl) {
+      btnCopyRoast.addEventListener('click', () => {
+        const txt = roastQuoteEl.textContent + ' — via VibeBracket Arena (NetHustle)';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).catch(() => {});
+        }
+        if (typeof showToast === 'function') showToast('📋 Hot Take Copied for TikTok / IG / Threads!');
+      });
+    }
+  })();
+
 })();

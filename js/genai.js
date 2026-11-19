@@ -1,4 +1,4 @@
-// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/genai.js | App: VibeBracket Arena
+// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/genai.js | App: VibeBracket Arena
 /**
  * File: js/genai.js
  * Description: 32-Seed GenAI Topic Studio & Real-Time Entity Synthesizer (Tier 1: OpenRouter BYOK 32-Seed LLM JSON; Tier 2: Live Wikipedia/Wikimedia REST Entity Resolution; Tier 3: 32-Seed Multi-Domain Curated Knowledge Graphs) with automatic real-time seed image lookup.
@@ -2006,6 +2006,7 @@ window.VibeGenAI = (() => {
   return {
     TRENDING_PACKS,
     DOMAIN_BANKS,
+    generateTopic,
     synthesizeLocalTopic,
     synthesizeCurated32Topic,
     fetchWikipediaEntitiesForPrompt,

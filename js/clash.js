@@ -1,4 +1,4 @@
-// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/clash.js | App: VibeBracket Arena
+// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/clash.js | App: VibeBracket Arena
 /**
  * File: js/clash.js
  * Description: Client-side contender photo crop/compression (<150KB) and animated Versus Clash transition controller.

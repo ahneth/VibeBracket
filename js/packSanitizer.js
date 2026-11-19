@@ -1,4 +1,4 @@
-// Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: js/packSanitizer.js | App: VibeBracket Arena
+// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/packSanitizer.js | App: VibeBracket Arena
 /**
  * File: js/packSanitizer.js
  * Description: UTF-8 safe URL-hash codec (#b=/#bracket= and #challenge=), 31-bit taste compatibility comparator, power-of-two tournament schema validator, and CSV/JSON pack import/export engine.
