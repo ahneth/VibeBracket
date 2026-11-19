@@ -1,4 +1,4 @@
-/* Version: 3.1.0 | Last Modified: 2026-11-18 22:28 HKT | File: css/styles.css | App: VibeBracket Arena */
+/* Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: css/styles.css | App: VibeBracket Arena */
 /*
   File: css/styles.css
   Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
@@ -1303,4 +1303,32 @@ html[data-arena-skin="gold"] {
   background: rgba(30, 41, 59, 0.90);
   border: 1px solid rgba(148, 163, 184, 0.28);
   color: var(--text-primary, #f8fafc);
+}
+
+/* === v3.2.0: Draft Board Photo Health & Rivalry Roast Quote Card (POD2-1202, POD2-1204) === */
+.draft-board-status-pill.photo-health-ok { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.45); }
+.draft-board-status-pill.photo-health-warn { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.45); }
+.rivalry-roast-card {
+  margin-top: 0.9rem;
+  padding: 1rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.12), rgba(15, 23, 42, 0.88));
+  text-align: left;
+}
+.rivalry-roast-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fda4af;
+  margin-bottom: 0.35rem;
+}
+.rivalry-roast-quote {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.45;
+  margin: 0.25rem 0 0.7rem;
 }
