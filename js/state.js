@@ -1,4 +1,4 @@
-// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/state.js | App: VibeBracket Arena
+// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/state.js | App: VibeBracket Arena
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -243,10 +243,33 @@ window.VibeState = (() => {
   function getActiveTopic() { return getAllTopics().find((t) => t.id === state.activeTopicId) || STARTER_TOPICS[0]; }
 
   /** Initializes a fresh knockout bracket for a given topic. */
+  function buildTournamentSeedOrder(n) {
+    if (n <= 2) return [0, 1].slice(0, n);
+    let order = [0, 1];
+    while (order.length < n) {
+      const nextSize = order.length * 2;
+      const next = [];
+      for (let i = 0; i < order.length; i++) {
+        next.push(order[i], nextSize - 1 - order[i]);
+      }
+      order = next;
+    }
+    return order;
+  }
+
   function initBracket(topic) {
+    const items = Array.isArray(topic && topic.items) ? topic.items : [];
+    const n = items.length;
     const pairs = [];
-    for (let i = 0; i < topic.items.length; i += 2) {
-      pairs.push({ left: topic.items[i], right: topic.items[i + 1], winner: null });
+    if (n >= 2 && (n & (n - 1)) === 0) {
+      const order = buildTournamentSeedOrder(n);
+      for (let i = 0; i < order.length; i += 2) {
+        pairs.push({ left: items[order[i]], right: items[order[i + 1]], winner: null });
+      }
+    } else {
+      for (let i = 0; i < n - 1; i += 2) {
+        pairs.push({ left: items[i], right: items[i + 1], winner: null });
+      }
     }
     state.brackets[topic.id] = {
       rounds: [pairs],
@@ -265,7 +288,8 @@ window.VibeState = (() => {
     const topic = getActiveTopic();
     const existing = state.brackets[topic.id];
     // Upgrade legacy 8-seed cached starter brackets to 32-seed arena automatically
-    if (!existing || (existing.rounds && existing.rounds[0] && existing.rounds[0].length * 2 !== topic.items.length && existing.history.length === 0)) {
+    const legacyLinearR1 = existing && existing.rounds && existing.rounds[0] && existing.rounds[0][0] && topic.items.length >= 4 && existing.rounds[0][0].right && existing.rounds[0][0].right.id === topic.items[1].id && existing.history.length === 0;
+    if (!existing || legacyLinearR1 || (existing.rounds && existing.rounds[0] && existing.rounds[0].length * 2 !== topic.items.length && existing.history.length === 0)) {
       initBracket(topic);
     }
     return state.brackets[topic.id];

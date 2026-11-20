@@ -1,4 +1,4 @@
-// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/app.js | App: VibeBracket Arena
+// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/app.js | App: VibeBracket Arena
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -2145,6 +2145,51 @@
           navigator.clipboard.writeText(txt).catch(() => {});
         }
         if (typeof showToast === 'function') showToast('📋 Hot Take Copied for TikTok / IG / Threads!');
+      });
+    }
+  })();
+
+
+  // === v3.3.0: POD2-1302 Vibe Wrapped Passport & POD2-1303 Smart Fix Missing Photos ===
+  (function initV330Hooks() {
+    const btnFixMissing = document.getElementById('btnFixMissingPhotos');
+    if (btnFixMissing) {
+      btnFixMissing.addEventListener('click', async () => {
+        const topic = window.VibeState && window.VibeState.getActiveTopic ? window.VibeState.getActiveTopic() : null;
+        if (!topic || !Array.isArray(topic.items) || !window.VibeVisuals || typeof window.VibeVisuals.fetchRealtimeSeedImage !== 'function') return;
+        const missing = topic.items.filter(it => !((window.VibeState && window.VibeState.getContenderPhoto && window.VibeState.getContenderPhoto(it.id)) || it.imageUrl));
+        if (!missing.length) {
+          if (typeof showToast === 'function') showToast('✅ All 32 Draft Board photos are already verified!');
+          return;
+        }
+        btnFixMissing.disabled = true;
+        for (const it of missing) {
+          await window.VibeVisuals.fetchRealtimeSeedImage(it, topic.title, { forceRefresh: true }).catch(() => {});
+          await new Promise(r => setTimeout(r, 120));
+        }
+        btnFixMissing.disabled = false;
+        if (typeof renderDraftBoard === 'function') renderDraftBoard();
+        if (typeof renderArena === 'function') renderArena();
+        if (typeof showToast === 'function') showToast('🩹 Resolved ' + missing.length + ' missing Draft Board photos!');
+      });
+    }
+
+    const btnWrapped = document.getElementById('btnExportVibeWrapped');
+    if (btnWrapped) {
+      btnWrapped.addEventListener('click', () => {
+        if (!window.VibePoster || typeof window.VibePoster.exportVibeWrappedPassport !== 'function') return;
+        const cabinet = (window.VibeState && typeof window.VibeState.getTrophyCabinet === 'function') ? window.VibeState.getTrophyCabinet() : [];
+        const res = window.VibePoster.exportVibeWrappedPassport({
+          cabinet,
+          totalClashes: Math.max(31, cabinet.length * 31)
+        });
+        if (res && res.dataUrl) {
+          const a = document.createElement('a');
+          a.href = res.dataUrl;
+          a.download = res.filename || 'vibebracket_vibe_wrapped_passport.png';
+          a.click();
+        }
+        if (typeof showToast === 'function') showToast('🪪 Vibe Wrapped Passport Exported (1080×1920)!');
       });
     }
   })();

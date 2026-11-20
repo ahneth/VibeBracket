@@ -1,4 +1,4 @@
-// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/visuals.js | App: VibeBracket Arena
+// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/visuals.js | App: VibeBracket Arena
 /**
  * File: js/visuals.js
  * Description: Contextual <Seed Name> <Arena Topic> 3-Provider Real-Time Seed Image Resolver (Google Image Custom Search + Wikipedia PageImages/Wikimedia Commons + Openverse CC0/CC-BY REST API), 1-Tap Seed Photo Cycler, CORS-safe Canvas DataURL converter, procedural SVG fallback banner generator, and HTML5 Canvas particle/confetti & diagonal VS clash shockwave engine.

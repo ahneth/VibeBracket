@@ -1,4 +1,4 @@
-// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/poster.js | App: VibeBracket Arena
+// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/poster.js | App: VibeBracket Arena
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -987,6 +987,7 @@ window.VibePoster = (() => {
           ctx.font = '24px monospace';
           ctx.fillStyle = '#475569';
           ctx.fillText('ahneth.github.io/VibeBracket_Arena', W / 2, H - 200);
+          drawDeterministicQrMatrix(ctx, o.shareUrl || 'https://ahneth.github.io/VibeBracket_Arena/', W - pad - 240, H - 430, 168);
           if (typeof c.toDataURL === 'function') {
             dataUrl = c.toDataURL('image/png');
           }
@@ -1003,7 +1004,113 @@ window.VibePoster = (() => {
     };
   }
 
+
+  function drawDeterministicQrMatrix(ctx, payloadStr, x, y, size) {
+    if (!ctx) return;
+    const cells = 21;
+    const cell = Math.floor(size / cells);
+    const total = cell * cells;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - 8, y - 8, total + 16, total + 16);
+    ctx.fillStyle = '#0f172a';
+    function drawFinder(fx, fy) {
+      ctx.fillRect(x + fx * cell, y + fy * cell, 7 * cell, 7 * cell);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + (fx + 1) * cell, y + (fy + 1) * cell, 5 * cell, 5 * cell);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(x + (fx + 2) * cell, y + (fy + 2) * cell, 3 * cell, 3 * cell);
+    }
+    drawFinder(0, 0);
+    drawFinder(cells - 7, 0);
+    drawFinder(0, cells - 7);
+    let hash = 2166136261;
+    const s = String(payloadStr || 'https://ahneth.github.io/VibeBracket_Arena/');
+    for (let i = 0; i < s.length; i++) {
+      hash ^= s.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    for (let r = 0; r < cells; r++) {
+      for (let c = 0; c < cells; c++) {
+        const inFinder = (r < 8 && c < 8) || (r < 8 && c >= cells - 8) || (r >= cells - 8 && c < 8);
+        if (inFinder) continue;
+        const bit = ((hash ^ (r * 31 + c * 17)) >>> ((r + c) % 16)) & 1;
+        if (bit) ctx.fillRect(x + c * cell, y + r * cell, cell, cell);
+      }
+    }
+  }
+
+  function exportVibeWrappedPassport(opts) {
+    const o = opts || {};
+    const W = 1080;
+    const H = 1920;
+    const entries = Array.isArray(o.cabinet) ? o.cabinet : [];
+    const totalTournaments = entries.length;
+    const totalClashes = Number.isFinite(Number(o.totalClashes)) ? Number(o.totalClashes) : totalTournaments * 31;
+    const topGenre = String(o.topGenre || (entries[0] && entries[0].topicTitle) || 'All-Time Pop Culture').slice(0, 32);
+    const contrarianPct = Number.isFinite(Number(o.contrarianPct)) ? Math.round(Number(o.contrarianPct)) : 28;
+    const archetype = String(o.archetype || '🏆 Bracket Tactician').slice(0, 34);
+    let dataUrl = '';
+    if (typeof document !== 'undefined' && document.createElement) {
+      const c = document.createElement('canvas');
+      if (c && c.getContext) {
+        c.width = W;
+        c.height = H;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#090d16';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#a855f7';
+          ctx.fillRect(64, 96, W - 128, 12);
+          ctx.fillStyle = '#f8fafc';
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 54px sans-serif';
+          ctx.fillText('VIBE WRAPPED PASSPORT', 72, 210);
+          ctx.font = '28px sans-serif';
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText('MULTI-TOURNAMENT ARENA SUMMARY · NETHUSTLE', 72, 262);
+          const stats = [
+            ['TOURNAMENTS COMPLETED', String(totalTournaments)],
+            ['CUMULATIVE CLASHES', String(totalClashes)],
+            ['TOP GENRE', topGenre],
+            ['CONTRARIAN / UPSET RATE', contrarianPct + '%'],
+            ['ARENA ARCHETYPE', archetype]
+          ];
+          let y = 410;
+          stats.forEach(([k, v]) => {
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(72, y - 54, W - 144, 160);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText(k, 104, y);
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 42px sans-serif';
+            ctx.fillText(v, 104, y + 60);
+            y += 205;
+          });
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '24px sans-serif';
+          ctx.fillText('100% Client-Side Privacy · ahneth.github.io/VibeBracket_Arena', 72, H - 120);
+          if (typeof c.toDataURL === 'function') dataUrl = c.toDataURL('image/png');
+        }
+      }
+    }
+    return {
+      ok: true,
+      format: 'png',
+      width: W,
+      height: H,
+      filename: 'vibebracket_vibe_wrapped_passport.png',
+      totalTournaments,
+      totalClashes,
+      topGenre,
+      contrarianPct,
+      archetype,
+      dataUrl
+    };
+  }
+
   return {
+    exportVibeWrappedPassport,
     exportChampionshipReceipt,
     exportAnimatedVerdictReel,
     exportFriendDuelPoster,

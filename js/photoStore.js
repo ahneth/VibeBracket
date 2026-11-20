@@ -1,4 +1,4 @@
-// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/photoStore.js | App: VibeBracket Arena
+// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/photoStore.js | App: VibeBracket Arena
 /**
  * File: js/photoStore.js
  * Description: Client-side IndexedDB photo vault with automatic localStorage, in-memory fallback, and topic-scoped multi-candidate seed URL array storage (POD2-201, POD2-401 & POD2-501).

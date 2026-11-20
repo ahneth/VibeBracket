@@ -1,4 +1,4 @@
-// Version: 3.2.0 | Last Modified: 2026-11-19 22:56 HKT | File: js/logger.js | App: VibeBracket Arena
+// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/logger.js | App: VibeBracket Arena
 /**
  * File: js/logger.js
  * Description: Deterministic in-app diagnostic ring-buffer logger and Web Audio SFX synthesizer.
