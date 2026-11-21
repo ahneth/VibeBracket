@@ -1,4 +1,4 @@
-/* Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: css/styles.css | App: VibeBracket Arena */
+/* Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: css/styles.css | App: VibeBracket Arena */
 /*
   File: css/styles.css
   Description: Trendy, WCAG 2.1 AA dark-first glassmorphic design system and visual card layout for VibeBracket Arena.
@@ -1331,4 +1331,30 @@ html[data-arena-skin="gold"] {
   color: #f8fafc;
   line-height: 1.45;
   margin: 0.25rem 0 0.7rem;
+}
+
+/* === v3.4.0: Draft R1 1v32 Preview & Roast My Bracket Bullets (POD2-1401, POD2-1402) === */
+.draft-r1-preview {
+  margin: 0.5rem 0 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  font-size: 0.76rem;
+  color: #bae6fd;
+  line-height: 1.5;
+}
+.roast-bullets {
+  margin: 0.35rem 0 0.75rem 1.15rem;
+  padding: 0;
+  color: #e2e8f0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+/* === v3.5.0: Mobile Safe-Area Bottom Inset Polish (POD2-1504) === */
+@media (max-width: 768px) {
+  .container, main, .matchup-grid, .btn-cluster {
+    padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
+  }
 }
