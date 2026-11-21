@@ -1,4 +1,4 @@
-// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/state.js | App: VibeBracket Arena
+// Version: 3.6.0 | Last Modified: 2026-11-21 22:51 HKT | File: js/state.js | App: VibeBracket Arena
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -1068,7 +1068,72 @@ window.VibeState = (() => {
     return { ok: true, topicId: newId, seedCount: safeItems.length, title: safeTopic.title };
   }
 
+
+  function computeDramaScore(bracket) {
+    const b = bracket || getActiveBracket();
+    if (!b || !Array.isArray(b.history) || b.history.length === 0) return { score: 0, upsets: 0, label: '⚖️ Even Chalk' };
+    let upsetWeight = 0;
+    let upsets = 0;
+    b.history.forEach(h => {
+      const ls = Number(h && h.leftSeed) || 0;
+      const rs = Number(h && h.rightSeed) || 0;
+      const ws = Number(h && h.winnerSeed) || 0;
+      if (ls && rs && ws && ws > Math.min(ls, rs)) {
+        upsets++;
+        upsetWeight += Math.abs(ls - rs);
+      }
+    });
+    const score = Math.min(100, Math.round((upsets * 12) + (upsetWeight * 0.8)));
+    const label = score >= 65 ? '🌪️ Pure Chaos' : (score >= 30 ? '🔥 Spicy Upset Run' : '👑 Chalk Pedigree');
+    return { score, upsets, label };
+  }
+
+  function createBracketFromPasteList(rawText, title) {
+    const lines = String(rawText || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (lines.length < 4) return { ok: false, error: 'Need at least 4 lines' };
+    const clean = (s) => {
+      const str = String(s || '');
+      if (window.VibePackSanitizer && typeof window.VibePackSanitizer.sanitizeText === 'function') {
+        return window.VibePackSanitizer.sanitizeText(str, 64);
+      }
+      return str.replace(/[<>]/g, '').slice(0, 64);
+    };
+    const capped = lines.slice(0, 32);
+    const items = capped.map((name, i) => ({
+      id: 'paste_' + Date.now() + '_' + i,
+      name: clean(name),
+      seed: i + 1,
+      wikiTitle: clean(name),
+      imageUrl: ''
+    }));
+    const newId = 'paste_' + Date.now();
+    const topic = { id: newId, title: clean(title || 'Custom 32-Line Bracket'), items };
+    if (Array.isArray(state.customTopics)) state.customTopics.unshift(topic);
+    state.activeTopicId = newId;
+    initBracket(topic);
+    save();
+    return { ok: true, topicId: newId, count: items.length, title: topic.title };
+  }
+
+  function undoLastPick() {
+    const b = getActiveBracket();
+    if (!b || !Array.isArray(b.history) || b.history.length === 0) return { ok: false, reason: 'empty_history' };
+    const last = b.history.pop();
+    if (b.rounds && b.rounds[last.roundIdx] && b.rounds[last.roundIdx][last.matchIdx]) {
+      b.rounds[last.roundIdx][last.matchIdx].winner = null;
+    }
+    b.currentRoundIdx = last.roundIdx;
+    b.currentMatchIdx = last.matchIdx;
+    b.champion = null;
+    b.runnerUp = null;
+    save();
+    return { ok: true, remainingHistory: b.history.length, roundIdx: b.currentRoundIdx, matchIdx: b.currentMatchIdx };
+  }
+
   return {
+    computeDramaScore,
+    createBracketFromPasteList,
+    undoLastPick,
     runItBackRematch,
     exportTournamentSaveJson,
     importTournamentSaveJson,

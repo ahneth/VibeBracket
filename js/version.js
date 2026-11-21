@@ -1,4 +1,4 @@
-// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/version.js | App: VibeBracket Arena
+// Version: 3.6.0 | Last Modified: 2026-11-21 22:51 HKT | File: js/version.js | App: VibeBracket Arena
 /**
  * File: js/version.js
  * Description: Canonical version, build metadata, storage key, and Creator Pro pricing constants for VibeBracket Arena.
@@ -7,6 +7,7 @@
  *   - v2.0.0 (2026-11-13 17:55 HKT): Bumped to Track A v2.0.0.
  *   - v2.9.0 (2026-11-17 22:58 HKT): Bumped to v2.9.0 (POD2-901..905).
  *   - v3.0.0 (2026-11-18 10:28 HKT): Bumped to v3.0.0 (POD2-1001..1005: Closed BUG-P1-20261118-01 & OBS-P3-20261118-01).
+ *   - v3.6.0 (2026-11-21 22:51 HKT): Implemented FD-P0-20261121-01 (Zero-Scroll Mobile Dual-Card 1v1 Viewport) & POD2-1601..1605 (Chaos vs. Chalk 0-100 Drama Score, 32-Line Paste-List Builder, Keyboard Speedrun & Undo Stack, Reduced-Motion Toggle).
  *   - v3.5.0 (2026-11-21 10:38 HKT): Implemented POD2-1501..1505 (Run It Back Top-8 Rematch & Flipped-Seed Replay, Arcade Announcer Synth Pack, Sanitized .vibebracket.json Save/Resume, Mobile Safe-Area Polish & Creator Pro Watermark Toggle).
  *   - v3.4.0 (2026-11-20 22:12 HKT): Implemented POD2-1401..1405 (Draft Board 1v32 Preview & Seed Toggle, Roast My Bracket 3-Bullet Verdict, Full 32-Seed Bracket Tree Poster Export, CJK & Emoji Canvas Typography Polish).
  *   - v3.3.0 (2026-11-20 10:06 HKT): Implemented FD-P0-20261120-01 (Standard 1v32 recursive tournament seeding) & POD2-1301..1305 (BUILD_ID parity, Vibe Wrapped Passport, Smart 1-Tap Fix Missing Photos, Scannable Canvas QR Matrix on Championship Receipt).
@@ -15,11 +16,11 @@
  */
 window.VibeVersion = Object.freeze({
   APP_NAME: 'VibeBracket_Arena',
-  VERSION: '3.5.0',
-  APP_VERSION: '3.5.0',
-  BUILD_ID: '20261121_1038',
-  LAST_MODIFIED: '2026-11-21 10:38 HKT',
-  BUILD_TIMESTAMP: '2026-11-21 10:38 HKT',
+  VERSION: '3.6.0',
+  APP_VERSION: '3.6.0',
+  BUILD_ID: '20261121_2251',
+  LAST_MODIFIED: '2026-11-21 22:51 HKT',
+  BUILD_TIMESTAMP: '2026-11-21 22:51 HKT',
   COMPANY: 'NetHustle Software Labs Ltd.',
   MOTTO: 'Make money, Legally, NEVER HARM ANY HUMAN',
   STORAGE_KEY: 'vibebracket_arena_v2_state',

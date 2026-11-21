@@ -1,4 +1,4 @@
-// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/app.js | App: VibeBracket Arena
+// Version: 3.6.0 | Last Modified: 2026-11-21 22:51 HKT | File: js/app.js | App: VibeBracket Arena
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -2306,6 +2306,91 @@
           }
         };
         reader.readAsText(f);
+      });
+    }
+  })();
+
+
+  // === v3.6.0: FD-P0-20261121-01 Mobile Photo Toggles & POD2-1601..1604 Hooks ===
+  (function initV360Hooks() {
+    [['btnLeftPhotoToggle', 'leftCardWrap'], ['btnRightPhotoToggle', 'rightCardWrap']].forEach(([btnId, wrapId]) => {
+      const btn = document.getElementById(btnId);
+      const wrap = document.getElementById(wrapId);
+      if (btn && wrap) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const open = wrap.classList.toggle('photo-actions-open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+    });
+
+    function refreshDramaPill() {
+      const pill = document.getElementById('dramaScorePill');
+      if (pill && window.VibeState && typeof window.VibeState.computeDramaScore === 'function') {
+        const d = window.VibeState.computeDramaScore();
+        pill.textContent = '🔥 Drama: ' + d.score + '/100 (' + d.upsets + ' upsets)';
+      }
+    }
+    refreshDramaPill();
+
+    const btnUndo = document.getElementById('btnUndoLastPick');
+    if (btnUndo) {
+      btnUndo.addEventListener('click', () => {
+        if (!window.VibeState || typeof window.VibeState.undoLastPick !== 'function') return;
+        const res = window.VibeState.undoLastPick();
+        if (res && res.ok) {
+          refreshDramaPill();
+          if (typeof renderAll === 'function') renderAll();
+          if (typeof showToast === 'function') showToast('↩️ Undid last pick!');
+        } else {
+          if (typeof showToast === 'function') showToast('Nothing to undo yet.');
+        }
+      });
+    }
+
+    const btnPaste = document.getElementById('btnBuild32FromPaste');
+    const txtPaste = document.getElementById('paste32ListArea');
+    if (btnPaste && txtPaste) {
+      btnPaste.addEventListener('click', () => {
+        if (!window.VibeState || typeof window.VibeState.createBracketFromPasteList !== 'function') return;
+        const res = window.VibeState.createBracketFromPasteList(txtPaste.value, 'Custom Paste-List Bracket');
+        if (res && res.ok) {
+          refreshDramaPill();
+          if (typeof renderAll === 'function') renderAll();
+          if (typeof showToast === 'function') showToast('⚡ Built ' + res.count + '-seed bracket!');
+        } else {
+          if (typeof showToast === 'function') showToast('⚠️ Paste at least 4 lines to build a bracket.');
+        }
+      });
+    }
+
+    const btnMotion = document.getElementById('btnToggleReducedMotion');
+    if (btnMotion) {
+      const savedMotion = localStorage.getItem('vibebracket_reduced_motion') === 'true';
+      if (savedMotion) {
+        document.documentElement.setAttribute('data-reduced-motion', 'true');
+        btnMotion.textContent = '🎞️ Motion: Reduced';
+      }
+      btnMotion.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-reduced-motion') === 'true';
+        const next = !cur;
+        document.documentElement.setAttribute('data-reduced-motion', next ? 'true' : 'false');
+        localStorage.setItem('vibebracket_reduced_motion', next ? 'true' : 'false');
+        btnMotion.textContent = next ? '🎞️ Motion: Reduced' : '🎞️ Motion: Full';
+      });
+    }
+
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('keydown', (ev) => {
+        if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')) return;
+        if (ev.key === '1' || ev.key === 'ArrowLeft') {
+          const l = document.getElementById('btnPickLeft'); if (l) l.click();
+        } else if (ev.key === '2' || ev.key === 'ArrowRight') {
+          const r = document.getElementById('btnPickRight'); if (r) r.click();
+        } else if (ev.key === 'z' || ev.key === 'Z') {
+          const u = document.getElementById('btnUndoLastPick'); if (u) u.click();
+        }
       });
     }
   })();
