@@ -1,4 +1,4 @@
-<!-- Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: index.html | App: VibeBracket Arena -->
+<!-- Version: 3.6.0 | Last Modified: 2026-11-21 22:51 HKT | File: index.html | App: VibeBracket Arena -->
 <!--
   File: index.html
   Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
@@ -51,7 +51,7 @@
           <summary title="Studio, Streamer &amp; Diagnostic Tools">⚙️ Studio</summary>
           <div class="studio-drawer-menu">
             <button type="button" class="btn btn-sm" id="btnToggleStreamer" title="Toggle Live Streamer HUD &amp; Hotkeys">Streamer: OFF</button>
-            <button type="button" class="btn btn-sm" id="btnOpenLogs">Logs</button>
+            <button type="button" class="btn btn-sm" id="btnToggleReducedMotion" title="Toggle Reduced Motion accessibility mode">🎞️ Motion: Full</button><button type="button" class="btn btn-sm" id="btnOpenLogs">Logs</button>
           </div>
         </details>
         <button type="button" class="btn btn-primary btn-sm" id="btnOpenPro">Pro</button>
@@ -130,13 +130,13 @@
         </div>
         <div id="matchupStage">
           <div class="round-transition-banner" id="roundTransitionBanner" role="status" aria-live="polite"></div>
-          <div class="tale-of-the-tape-bar" id="taleOfTheTapeBar" aria-label="Matchup Tale of the Tape"><span class="tape-hype-badge" id="tapeHypeBadge">⚖️ Coin-Flip Clash</span><span id="tapeDomainLabel">Verified 32-Seed Showdown</span><span class="tape-split-meter" id="tapeWinSplitLabel">Community Split: 50% vs 50%</span></div>
+          <div class="tale-of-the-tape-bar" id="taleOfTheTapeBar" aria-label="Matchup Tale of the Tape"><span class="tape-hype-badge" id="tapeHypeBadge">⚖️ Coin-Flip Clash</span><span id="tapeDomainLabel">Verified 32-Seed Showdown</span><span class="tape-split-meter" id="tapeWinSplitLabel">Community Split: 50% vs 50%</span><span class="arena-hud-pill" id="dramaScorePill">🔥 Drama: 0/100</span><button type="button" class="btn btn-sm" id="btnUndoLastPick" title="Undo Last Pick (Shortcut: Z)">↩️ Undo (Z)</button></div>
           <div class="arena-commentary-ticker" id="arenaCommentaryTicker" role="status" aria-live="polite"><span id="commentaryTickerBadge">🎙️ LIVE DESK</span><span id="commentaryTickerText">Opening Round of 32 — Every seed starts with a clean slate!</span></div>
           <div class="crowd-consensus-toast" id="crowdConsensusToast" role="status" aria-live="polite"></div>
           <div class="trophy-cabinet-modal" id="trophyCabinetModal" role="region" aria-label="Hall of Champions Trophy Cabinet"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><strong>🏆 Hall of Champions — Personal Trophy Cabinet</strong><div style="display:flex;gap:6px;flex-wrap:wrap;"><button type="button" class="btn btn-sm btn-primary" id="btnExportVibeWrapped">🪪 Export Vibe Wrapped</button><button type="button" class="btn btn-sm" id="btnCloseTrophyCabinet">✕ Close</button></div></div><div class="trophy-cabinet-grid" id="trophyCabinetGrid"></div></div>
           <div class="creator-pro-modal" id="creatorProModal" role="dialog" aria-label="Creator Pro 4K Upgrade Preview"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><strong>👑 Creator Pro — Transparent 4K & Watermark-Free Upgrade</strong><button type="button" class="btn btn-sm" id="btnCloseCreatorPro">✕ Close</button></div><div class="creator-pro-compare-grid"><div class="creator-pro-tier-card"><strong>Free Tier ($0.00 Forever)</strong><div>• 1080p Story/Square Posters &amp; 32-Seed Arenas<br/>• 100% Client-Side Privacy &amp; ?duel= Friend Duels<br/>• Subtle NetHustle Watermark Stamp</div></div><div class="creator-pro-tier-card"><strong>Creator Pro ($4.99 One-Time · $9.99/mo · $79.00/yr)</strong><div>• Ultra-Sharp 4K (2160×3840) Story &amp; Tier Posters<br/>• Zero Watermark + 3-Skin Custom Branding<br/>• Cancel anytime in 1 click · Zero dark patterns</div></div></div><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><button type="button" class="btn btn-sm btn-primary" id="btnCreatorProCheckoutPreview">💳 Preview Stripe Checkout ($9.99/mo or $79/yr)</button><span style="font-size:0.78rem;color:var(--text-muted);">No auto-charges · FTC &amp; HK Cap. 362 transparent terms</span></div></div>
           <div class="matchup-grid">
-            <div class="contender-card-wrap" id="leftCardWrap">
+            <div class="contender-card-wrap" id="leftCardWrap"><button type="button" class="btn btn-sm mobile-photo-toggle" id="btnLeftPhotoToggle" aria-expanded="false" title="Edit Left Photo">📷</button>
               <button type="button" class="contender-btn" id="btnPickLeft">
                 <div id="leftArt" style="width:100%;"><img class="contender-banner-img" id="leftBannerImg" alt="Left contender visual banner" /><span id="leftEmoji" style="display:none;"></span></div>
                 <span class="seed-rank-pill" id="leftSeedPill"></span><span class="contender-name" id="leftName"></span>
@@ -158,7 +158,7 @@
               <span>VS</span>
             </div>
 
-            <div class="contender-card-wrap" id="rightCardWrap">
+            <div class="contender-card-wrap" id="rightCardWrap"><button type="button" class="btn btn-sm mobile-photo-toggle" id="btnRightPhotoToggle" aria-expanded="false" title="Edit Right Photo">📷</button>
               <button type="button" class="contender-btn" id="btnPickRight">
                 <div id="rightArt" style="width:100%;"><img class="contender-banner-img" id="rightBannerImg" alt="Right contender visual banner" /><span id="rightEmoji" style="display:none;"></span></div>
                 <span class="seed-rank-pill" id="rightSeedPill"></span><span class="contender-name" id="rightName"></span>
@@ -371,6 +371,13 @@
             <div class="btn-cluster">
               <button type="submit" class="btn btn-primary">Launch Bracket</button>
               <button type="button" class="btn" id="btnFillSample32">Auto-Fill 32 Contenders</button>
+              <div style="margin-top:0.85rem;padding-top:0.75rem;border-top:1px solid rgba(148,163,184,0.2);">
+                <label class="form-label" for="paste32ListArea">⚡ 1-Click 32-Line Paste-List Custom Builder (3 Seconds)</label>
+                <textarea class="input" id="paste32ListArea" rows="4" placeholder="Paste up to 32 contender names (one per line)..."></textarea>
+                <div style="margin-top:0.45rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                  <button type="button" class="btn btn-primary btn-sm" id="btnBuild32FromPaste">⚡ Build 32-Seed Bracket from List</button>
+                </div>
+              </div>
               <button type="button" class="btn" id="btnExportBracketLink">Copy Share Link</button>
             </div>
           </form>
