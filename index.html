@@ -1,4 +1,4 @@
-<!-- Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: index.html | App: VibeBracket Arena -->
+<!-- Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: index.html | App: VibeBracket Arena -->
 <!--
   File: index.html
   Description: Main HTML entry point for VibeBracket Arena (by NetHustle Software Labs Ltd.).
@@ -123,8 +123,9 @@
               <strong style="font-size:0.9rem;color:#f8fafc;">📋 32-Seed Interactive Draft Board (Pre-Battle Roster Preview)</strong>
               <p class="section-sub">Inspect all 32 contenders and their live photos at a glance — click ✏️ Edit Seed to swap any contender or 📌 Pin URL to customize its portrait.</p>
             </div>
-            <span class="draft-board-status-pill photo-health-ok" id="draftBoardPhotoStatus">32 / 32 Verified Photos</span><button type="button" class="btn btn-sm" id="btnPrefetchDraftBoard" title="Prefetch verified Wikipedia/Wikidata visuals for all 32 Draft Board seeds (concurrency = 4)">⚡ Prefetch 32 Photos</button><button type="button" class="btn btn-sm" id="btnFixMissingPhotos" title="Smart 1-tap batch resolver for unverified Draft Board slots (Wikimedia / Commons / Openverse)">🩹 Fix Missing Photos</button><button type="button" class="btn btn-sm btn-primary" id="btnShareDraftLineup" title="Copy 1-click 32-Seed Lineup Share URL (#b=)">🔗 Share 32-Seed Lineup</button><button type="button" class="btn btn-sm" id="btnCloseDraftBoard">Hide Draft Board</button>
+            <span class="draft-board-status-pill photo-health-ok" id="draftBoardPhotoStatus">32 / 32 Verified Photos</span><button type="button" class="btn btn-sm" id="btnPrefetchDraftBoard" title="Prefetch verified Wikipedia/Wikidata visuals for all 32 Draft Board seeds (concurrency = 4)">⚡ Prefetch 32 Photos</button><button type="button" class="btn btn-sm" id="btnToggleSeedMode" title="Toggle Standard 1v32 Tournament Seeding vs Random Shuffle before Match 1">🔀 Seeding: Standard 1v32</button><button type="button" class="btn btn-sm" id="btnFixMissingPhotos" title="Smart 1-tap batch resolver for unverified Draft Board slots (Wikimedia / Commons / Openverse)">🩹 Fix Missing Photos</button><button type="button" class="btn btn-sm btn-primary" id="btnShareDraftLineup" title="Copy 1-click 32-Seed Lineup Share URL (#b=)">🔗 Share 32-Seed Lineup</button><button type="button" class="btn btn-sm" id="btnExportSaveJson" title="Download sanitized .vibebracket.json state">💾 Save .json</button><button type="button" class="btn btn-sm" id="btnImportSaveJson" title="Resume from .vibebracket.json file">📂 Resume .json</button><input type="file" id="inputImportSaveJson" accept=".json,.vibebracket.json" style="display:none;" /><button type="button" class="btn btn-sm" id="btnCloseDraftBoard">Hide Draft Board</button>
           </div>
+          <div class="draft-r1-preview" id="draftR1Preview">Round 1 (1v32): (1 vs 32) · (16 vs 17) · (8 vs 25) · (9 vs 24) · Top seeds meet in the Grand Final.</div>
           <div class="draft-board-grid" id="draftBoardGrid"></div>
         </div>
         <div id="matchupStage">
@@ -201,6 +202,9 @@
               <button type="button" class="btn btn-primary" id="btnGoPoster">Bake Photo Into Viral Poster</button>
               <button type="button" class="btn btn-primary" id="btnGoTiersFromChampion">Review Auto-Ranked Tier List</button>
               <button type="button" class="btn btn-primary" id="btnExportReceipt">🧾 Championship Receipt</button>
+              <button type="button" class="btn btn-primary" id="btnRunItBackTop8">🔁 Run It Back (Top 8)</button>
+              <button type="button" class="btn" id="btnRunItBackFlipped">🔄 Flipped-Seed Replay</button>
+              <label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.78rem;color:var(--text-muted);"><input type="checkbox" id="chkProNoWatermark" /> 👑 Watermark-Free Preview (Pro)</label>
               <button type="button" class="btn" id="btnCopySummary">Copy Results</button>
             </div>
           </div>
@@ -215,6 +219,7 @@
           <div class="rivalry-roast-card" id="rivalryRoastCard" role="region" aria-label="Rivalry Roast Hot-Take Quote Card">
             <span class="rivalry-roast-badge" id="rivalryRoastBadge">🔥 HOT TAKE VERDICT</span>
             <p class="rivalry-roast-quote" id="rivalryRoastQuote">"Crown the undisputed champion — everyone else is fighting for second place."</p>
+            <ul class="roast-bullets" id="roastMyBracketBullets"><li>Balanced 1v32 path — you respected top seeds early and saved chaos for later.</li><li>Finalist pedigree held strong through the Elite 8 gauntlet.</li><li>Zero mercy on sentimental underdogs.</li></ul>
             <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
               <button type="button" class="btn btn-sm btn-primary" id="btnCopyRoastCard">📋 Copy Hot Take</button>
               <button type="button" class="btn btn-sm" id="btnCycleRoastLine">🎲 Next Roast</button>
@@ -246,6 +251,7 @@
           <div>
             <h2 class="section-heading" id="treeTitle">Live Bracket Tree</h2>
             <p class="section-sub">Visual knockout path from opening round to Grand Champion (pinch or wheel to zoom, drag to pan).</p>
+            <div style="margin:0.4rem 0 0.7rem;"><button type="button" class="btn btn-sm btn-primary" id="btnExportTreePoster">🌳 Export 32-Seed Tree Poster</button></div>
           </div>
           <div class="tree-controls">
             <button type="button" class="btn btn-sm" id="btnZoomOut" title="Zoom out">−</button>
