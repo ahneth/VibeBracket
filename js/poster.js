@@ -1,4 +1,4 @@
-// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/poster.js | App: VibeBracket Arena
+// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/poster.js | App: VibeBracket Arena
 /**
  * File: js/poster.js
  * Description: Multi-format (9:16 Story 1080x1920, 1:1 Square 1080x1080, 4:5 Portrait 1080x1350) & 4K (2160x3840) HTML5 Canvas Viral Share Poster generator with 4 Co-Star Hero Composition Presets, Live Photo Sliders (POD2-402), and 32-Seed Tier-List Poster Exporter with "🔥 Robbery Fixed" badges (POD2-403).
@@ -983,7 +983,7 @@ window.VibePoster = (() => {
           ctx.textAlign = 'center';
           ctx.font = 'bold 28px monospace';
           ctx.fillStyle = '#0f172a';
-          ctx.fillText('THANK YOU FOR DEBATING · NETHUSTLE', W / 2, H - 250);
+          if (!o.hideWatermark) ctx.fillText('THANK YOU FOR DEBATING · NETHUSTLE', W / 2, H - 250);
           ctx.font = '24px monospace';
           ctx.fillStyle = '#475569';
           ctx.fillText('ahneth.github.io/VibeBracket_Arena', W / 2, H - 200);
@@ -1109,7 +1109,90 @@ window.VibePoster = (() => {
     };
   }
 
+
+  const CJK_SANS = '"Noto Sans TC", "PingFang HK", "Microsoft JhengHei", "Hiragino Sans", "Apple Color Emoji", "Segoe UI Emoji", system-ui, sans-serif';
+
+  function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+    if (!ctx) return y;
+    const chars = Array.from(String(text || ''));
+    let line = '';
+    let cy = y;
+    for (let i = 0; i < chars.length; i++) {
+      const test = line + chars[i];
+      const w = (ctx.measureText ? ctx.measureText(test).width : test.length * 14);
+      if (w > maxWidth && line.length > 0) {
+        ctx.fillText(line, x, cy);
+        line = chars[i];
+        cy += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    if (line) ctx.fillText(line, x, cy);
+    return cy + lineHeight;
+  }
+
+  function exportBracketTreePoster(opts) {
+    const o = opts || {};
+    const W = 1920;
+    const H = 1080;
+    const topicTitle = String(o.topicTitle || 'VibeBracket Arena — 32-Seed Tree').slice(0, 56);
+    const rounds = Array.isArray(o.rounds) ? o.rounds : [];
+    const championName = String(o.championName || 'TBD').slice(0, 36);
+    let dataUrl = '';
+    if (typeof document !== 'undefined' && document.createElement) {
+      const c = document.createElement('canvas');
+      if (c && c.getContext) {
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#090d16';
+          ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = '#f8fafc';
+          ctx.textAlign = 'left';
+          ctx.font = 'bold 38px ' + CJK_SANS;
+          wrapCanvasText(ctx, topicTitle + ' · 32-SEED BRACKET TREE', 60, 74, W - 120, 44);
+          ctx.font = 'bold 24px ' + CJK_SANS;
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText('CROWNED CHAMPION: ' + championName + (o.hideWatermark ? '' : ' · NETHUSTLE'), 60, 122);
+          const colW = 340;
+          const labels = ['ROUND OF 32', 'SWEET 16', 'ELITE 8', 'FINAL 4', 'GRAND FINAL'];
+          for (let r = 0; r < 5; r++) {
+            const rx = 60 + r * (colW + 24);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 18px ' + CJK_SANS;
+            ctx.fillText(labels[r], rx, 174);
+            const matches = rounds[r] || [];
+            const step = Math.max(48, Math.floor((H - 250) / Math.max(1, matches.length || (16 >> r))));
+            for (let m = 0; m < (matches.length || (16 >> r)); m++) {
+              const my = 200 + m * step;
+              const match = matches[m];
+              const label = match && match.winner ? ('🏆 ' + match.winner.name) : (match && match.left && match.right ? (match.left.name + ' vs ' + match.right.name) : 'Pending Match');
+              ctx.fillStyle = '#1e293b';
+              ctx.fillRect(rx, my, colW, Math.min(40, step - 6));
+              ctx.fillStyle = match && match.winner ? '#fde047' : '#e2e8f0';
+              ctx.font = '15px ' + CJK_SANS;
+              ctx.fillText(String(label).slice(0, 34), rx + 10, my + 24);
+            }
+          }
+          if (typeof c.toDataURL === 'function') dataUrl = c.toDataURL('image/png');
+        }
+      }
+    }
+    return {
+      ok: true,
+      format: 'png',
+      width: W,
+      height: H,
+      filename: 'vibebracket_tree_poster.png',
+      roundsRendered: rounds.length,
+      dataUrl
+    };
+  }
+
   return {
+    wrapCanvasText,
+    exportBracketTreePoster,
     exportVibeWrappedPassport,
     exportChampionshipReceipt,
     exportAnimatedVerdictReel,

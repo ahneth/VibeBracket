@@ -1,4 +1,4 @@
-// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/app.js | App: VibeBracket Arena
+// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/app.js | App: VibeBracket Arena
 /**
  * File: js/app.js
  * Description: Main UI controller, 32-seed real-time image lookup wiring, Bracket Tree renderer, Auto-Populated & Drag-and-Drop Tier List controller, GenAI Co-Star Poster Studio, Streamer HUD, JSON/CSV pack portability, and modal/toast orchestration.
@@ -2190,6 +2190,122 @@
           a.click();
         }
         if (typeof showToast === 'function') showToast('🪪 Vibe Wrapped Passport Exported (1080×1920)!');
+      });
+    }
+  })();
+
+
+  // === v3.4.0: POD2-1401 1v32 Seed Toggle & Preview, POD2-1402 Roast My Bracket, POD2-1403 Tree Poster ===
+  (function initV340Hooks() {
+    let seedMode = 'standard';
+    function updateR1Preview() {
+      const el = document.getElementById('draftR1Preview');
+      const b = window.VibeState && window.VibeState.getActiveBracket ? window.VibeState.getActiveBracket() : null;
+      if (!el || !b || !b.rounds || !b.rounds[0]) return;
+      const summary = b.rounds[0].slice(0, 6).map(m => (m.left.name || 'Seed') + ' vs ' + (m.right.name || 'Seed')).join(' · ');
+      el.textContent = (seedMode === 'shuffle' ? 'Round 1 (Random Shuffle): ' : 'Round 1 (Standard 1v32): ') + summary + ' ...';
+    }
+    const btnSeed = document.getElementById('btnToggleSeedMode');
+    if (btnSeed) {
+      btnSeed.addEventListener('click', () => {
+        if (!window.VibeState || typeof window.VibeState.setBracketSeedMode !== 'function') return;
+        const nextMode = seedMode === 'standard' ? 'shuffle' : 'standard';
+        const res = window.VibeState.setBracketSeedMode(nextMode);
+        if (!res || !res.ok) {
+          if (typeof showToast === 'function') showToast('⚠️ Seeding locked once Match 1 has started.');
+          return;
+        }
+        seedMode = nextMode;
+        btnSeed.textContent = seedMode === 'shuffle' ? '🔀 Seeding: Random Shuffle' : '🔀 Seeding: Standard 1v32';
+        updateR1Preview();
+        if (typeof renderDraftBoard === 'function') renderDraftBoard();
+        if (typeof renderArena === 'function') renderArena();
+        if (typeof showToast === 'function') showToast(seedMode === 'shuffle' ? '🎲 Shuffled Round 1 matchups!' : '🏆 Restored Standard 1v32 Tournament Seeding!');
+      });
+    }
+    updateR1Preview();
+
+    const btnTree = document.getElementById('btnExportTreePoster');
+    if (btnTree) {
+      btnTree.addEventListener('click', () => {
+        if (!window.VibePoster || typeof window.VibePoster.exportBracketTreePoster !== 'function') return;
+        const topic = window.VibeState && window.VibeState.getActiveTopic ? window.VibeState.getActiveTopic() : null;
+        const b = window.VibeState && window.VibeState.getActiveBracket ? window.VibeState.getActiveBracket() : null;
+        const res = window.VibePoster.exportBracketTreePoster({
+          topicTitle: topic ? topic.title : 'VibeBracket Arena',
+          rounds: b ? b.rounds : [],
+          championName: b && b.champion ? b.champion.name : 'TBD'
+        });
+        if (res && res.dataUrl) {
+          const a = document.createElement('a');
+          a.href = res.dataUrl;
+          a.download = res.filename || 'vibebracket_tree_poster.png';
+          a.click();
+        }
+        if (typeof showToast === 'function') showToast('🌳 32-Seed Bracket Tree Poster Exported (1920×1080)!');
+      });
+    }
+  })();
+
+
+  // === v3.5.0: POD2-1501 Run It Back, POD2-1502 Synth, POD2-1503 Save/Resume, POD2-1504 Watermark Toggle ===
+  (function initV350Hooks() {
+    const btnTop8 = document.getElementById('btnRunItBackTop8');
+    if (btnTop8) {
+      btnTop8.addEventListener('click', () => {
+        if (!window.VibeState || typeof window.VibeState.runItBackRematch !== 'function') return;
+        const res = window.VibeState.runItBackRematch('top8');
+        if (res && res.ok) {
+          if (window.VibeVisuals && typeof window.VibeVisuals.playArcadeSynth === 'function') window.VibeVisuals.playArcadeSynth('tipoff');
+          if (typeof renderAll === 'function') renderAll();
+          if (typeof showToast === 'function') showToast('🔁 Top-8 Rematch Arena Ready!');
+        }
+      });
+    }
+    const btnFlip = document.getElementById('btnRunItBackFlipped');
+    if (btnFlip) {
+      btnFlip.addEventListener('click', () => {
+        if (!window.VibeState || typeof window.VibeState.runItBackRematch !== 'function') return;
+        const res = window.VibeState.runItBackRematch('flipped');
+        if (res && res.ok) {
+          if (window.VibeVisuals && typeof window.VibeVisuals.playArcadeSynth === 'function') window.VibeVisuals.playArcadeSynth('walkout');
+          if (typeof renderAll === 'function') renderAll();
+          if (typeof showToast === 'function') showToast('🔄 Flipped-Seed Rematch Arena Ready!');
+        }
+      });
+    }
+    const btnSaveJson = document.getElementById('btnExportSaveJson');
+    if (btnSaveJson) {
+      btnSaveJson.addEventListener('click', () => {
+        if (!window.VibeState || typeof window.VibeState.exportTournamentSaveJson !== 'function') return;
+        const payload = window.VibeState.exportTournamentSaveJson();
+        const blob = new Blob([payload], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'tournament.vibebracket.json';
+        a.click();
+        if (typeof showToast === 'function') showToast('💾 Saved .vibebracket.json!');
+      });
+    }
+    const btnImpJson = document.getElementById('btnImportSaveJson');
+    const inpImpJson = document.getElementById('inputImportSaveJson');
+    if (btnImpJson && inpImpJson) {
+      btnImpJson.addEventListener('click', () => inpImpJson.click());
+      inpImpJson.addEventListener('change', (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (!window.VibeState || typeof window.VibeState.importTournamentSaveJson !== 'function') return;
+          const res = window.VibeState.importTournamentSaveJson(String(reader.result || ''));
+          if (res && res.ok) {
+            if (typeof renderAll === 'function') renderAll();
+            if (typeof showToast === 'function') showToast('📂 Resumed "' + res.title + '"!');
+          } else {
+            if (typeof showToast === 'function') showToast('⚠️ Invalid .vibebracket.json file.');
+          }
+        };
+        reader.readAsText(f);
       });
     }
   })();

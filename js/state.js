@@ -1,4 +1,4 @@
-// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/state.js | App: VibeBracket Arena
+// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/state.js | App: VibeBracket Arena
 /**
  * File: js/state.js
  * Description: 32-Seed Starter Templates, localStorage + IndexedDB persistence, UTF-8 URL-hash sharing, custom contender photos, hot-takes, bracket progression engine, and automatic Tournament-to-Tier-List mapping.
@@ -966,7 +966,113 @@ window.VibeState = (() => {
     return b64 ? '#b=' + b64 : '';
   }
 
+
+  function setBracketSeedMode(mode) {
+    const topic = getActiveTopic();
+    if (!topic || !Array.isArray(topic.items)) return null;
+    const b = getActiveBracket();
+    if (b && b.history && b.history.length > 0) return { ok: false, reason: 'match_started' };
+    if (mode === 'shuffle') {
+      const shuffled = topic.items.slice();
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
+      }
+      const pairs = [];
+      for (let i = 0; i < shuffled.length - 1; i += 2) {
+        pairs.push({ left: shuffled[i], right: shuffled[i + 1], winner: null });
+      }
+      state.brackets[topic.id] = {
+        rounds: [pairs], currentRoundIdx: 0, currentMatchIdx: 0, history: [],
+        champion: null, runnerUp: null, semifinalists: [], placementMatches: [], currentPlacementIdx: 0,
+        seedMode: 'shuffle'
+      };
+    } else {
+      initBracket(topic);
+      if (state.brackets[topic.id]) state.brackets[topic.id].seedMode = 'standard';
+    }
+    save();
+    return { ok: true, mode: mode === 'shuffle' ? 'shuffle' : 'standard', bracket: state.brackets[topic.id] };
+  }
+
+
+  function runItBackRematch(mode) {
+    const topic = getActiveTopic();
+    const b = getActiveBracket();
+    if (!topic || !Array.isArray(topic.items) || topic.items.length < 4) return { ok: false };
+    let nextItems = topic.items.slice();
+    if (mode === 'top8' && b && Array.isArray(b.rounds) && b.rounds.length >= 3 && Array.isArray(b.rounds[2])) {
+      const qf = [];
+      b.rounds[2].forEach(m => {
+        if (m && m.left) qf.push(m.left);
+        if (m && m.right) qf.push(m.right);
+      });
+      if (qf.length === 8) nextItems = qf;
+    } else if (mode === 'flipped') {
+      nextItems = topic.items.slice().reverse();
+    } else if (mode === 'top8') {
+      nextItems = topic.items.slice(0, 8);
+    }
+    const newId = topic.id + '_' + (mode || 'rematch') + '_' + Date.now();
+    const rematchTopic = {
+      id: newId,
+      title: topic.title + (mode === 'top8' ? ' (Top-8 Rematch)' : ' (Flipped Seeds)'),
+      items: nextItems
+    };
+    if (Array.isArray(state.customTopics)) state.customTopics.unshift(rematchTopic);
+    state.activeTopicId = newId;
+    initBracket(rematchTopic);
+    save();
+    return { ok: true, mode: mode || 'top8', topicId: newId, seedCount: nextItems.length };
+  }
+
+  function exportTournamentSaveJson() {
+    const topic = getActiveTopic();
+    const bracket = getActiveBracket();
+    return JSON.stringify({
+      schema: 'vibebracket.save.v1',
+      version: '3.5.0',
+      savedAt: new Date().toISOString(),
+      topic: topic ? { id: topic.id, title: topic.title, items: topic.items } : null,
+      bracket: bracket || null
+    }, null, 2);
+  }
+
+  function importTournamentSaveJson(rawJson) {
+    if (typeof rawJson !== 'string' || !rawJson.trim()) return { ok: false, error: 'Empty JSON' };
+    let parsed;
+    try { parsed = JSON.parse(rawJson); } catch (e) { return { ok: false, error: 'Invalid JSON' }; }
+    if (!parsed || parsed.schema !== 'vibebracket.save.v1' || !parsed.topic || !Array.isArray(parsed.topic.items) || parsed.topic.items.length < 4) {
+      return { ok: false, error: 'Invalid save schema' };
+    }
+    const clean = (s) => {
+      const str = String(s || '');
+      if (window.VibePackSanitizer && typeof window.VibePackSanitizer.sanitizeText === 'function') {
+        return window.VibePackSanitizer.sanitizeText(str, 80);
+      }
+      return str.replace(/[<>]/g, '').slice(0, 80);
+    };
+    const safeItems = parsed.topic.items.map((it, idx) => ({
+      id: clean(it.id || ('seed_' + idx)),
+      name: clean(it.name || ('Contender ' + (idx + 1))),
+      seed: Number.isFinite(Number(it.seed)) ? Number(it.seed) : (idx + 1),
+      wikiTitle: clean(it.wikiTitle || ''),
+      imageUrl: (typeof it.imageUrl === 'string' && /^https?:\/\//i.test(it.imageUrl)) ? it.imageUrl : ''
+    }));
+    const newId = 'resumed_' + Date.now();
+    const safeTopic = { id: newId, title: clean(parsed.topic.title || 'Resumed Bracket'), items: safeItems };
+    if (Array.isArray(state.customTopics)) state.customTopics.unshift(safeTopic);
+    state.activeTopicId = newId;
+    initBracket(safeTopic);
+    save();
+    return { ok: true, topicId: newId, seedCount: safeItems.length, title: safeTopic.title };
+  }
+
   return {
+    runItBackRematch,
+    exportTournamentSaveJson,
+    importTournamentSaveJson,
+    setBracketSeedMode,
     encodeLineupHash,
     getTrophyCabinet,
     recordChampionToCabinet,

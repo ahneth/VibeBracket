@@ -1,4 +1,4 @@
-// Version: 3.3.0 | Last Modified: 2026-11-20 10:06 HKT | File: js/visuals.js | App: VibeBracket Arena
+// Version: 3.5.0 | Last Modified: 2026-11-21 10:38 HKT | File: js/visuals.js | App: VibeBracket Arena
 /**
  * File: js/visuals.js
  * Description: Contextual <Seed Name> <Arena Topic> 3-Provider Real-Time Seed Image Resolver (Google Image Custom Search + Wikipedia PageImages/Wikimedia Commons + Openverse CC0/CC-BY REST API), 1-Tap Seed Photo Cycler, CORS-safe Canvas DataURL converter, procedural SVG fallback banner generator, and HTML5 Canvas particle/confetti & diagonal VS clash shockwave engine.
@@ -874,7 +874,38 @@ window.VibeVisuals = (() => {
     return { resolved, total };
   }
 
+
+  function playArcadeSynth(cue, muted) {
+    if (muted) return { ok: true, played: false, cue };
+    const seqs = {
+      tipoff: [440, 554, 659],
+      upset: [587, 440, 698, 880],
+      walkout: [392, 494, 587, 784],
+      crown: [523, 659, 784, 1046]
+    };
+    const notes = seqs[cue] || seqs.tipoff;
+    try {
+      const AC = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+      if (AC) {
+        const ctx = new AC();
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.08, ctx.currentTime + i * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.09 + 0.14);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.09);
+          osc.stop(ctx.currentTime + i * 0.09 + 0.15);
+        });
+      }
+    } catch (_) {}
+    return { ok: true, played: true, cue, notesCount: notes.length };
+  }
+
   return {
+    playArcadeSynth,
     prefetchDraftBoardVisuals,
 
     isSafeImageUrl,
